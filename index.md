@@ -5,9 +5,6 @@ description: Explore independent, commission-based retail sales opportunities wi
 ---
 
 <section class="hc-hero" aria-labelledby="hero-title">
-  <video autoplay muted loop playsinline preload="metadata" aria-hidden="true">
-    <source src="{{ '/assets/Videos/HLC_Corp_compressed.mp4' | relative_url }}" type="video/mp4">
-  </video>
   <div class="hc-container hc-hero-inner">
     <span class="hc-eyebrow">Independent sales. Real relationships.</span>
     <h1 id="hero-title">Build relationships.<br><em>Own your territory.</em></h1>
@@ -16,6 +13,20 @@ description: Explore independent, commission-based retail sales opportunities wi
       <a class="hc-button" href="{{ '/apply' | relative_url }}">Apply to Join</a>
       <a class="hc-secondary-link" href="#opportunity">Explore the opportunity ↓</a>
     </div>
+  </div>
+</section>
+
+<section class="hc-video-section" aria-labelledby="hc-video-title">
+  <div class="hc-container hc-video-layout">
+    <div class="hc-video-intro">
+      <p class="hc-kicker">See Highline Connect in action</p>
+      <h2 id="hc-video-title" class="hc-heading">Get the full picture.</h2>
+      <p>Watch our presentation with sound. The complete video stays visible, including its original captions and graphics.</p>
+    </div>
+    <video class="hc-feature-video" controls playsinline preload="metadata" aria-label="Highline Connect company presentation">
+      <source src="{{ '/assets/Videos/HLC_Corp_compressed.mp4' | relative_url }}" type="video/mp4">
+      Your browser does not support HTML5 video.
+    </video>
   </div>
 </section>
 
