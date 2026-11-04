@@ -121,3 +121,10 @@
 @media(max-width:900px){.hc-journey-heading{display:block;padding:65px 25px 40px}.hc-journey-heading>p{margin-top:24px;max-width:620px}.hc-journey-card{grid-template-columns:1fr;min-height:0;top:10px;margin-bottom:7vh}.hc-journey-card-copy{min-height:440px;padding:36px}.hc-journey-card-art{min-height:340px}.hc-journey-card h3{font-size:clamp(3rem,8vw,5rem)}.hc-journey-big-number{font-size:50vw}}
 @media(max-width:600px){.hc-journey{padding-bottom:50px}.hc-journey-heading{padding:50px 20px 30px}.hc-journey-heading h2{font-size:clamp(2.8rem,10vw,4.5rem)}.hc-journey-track{padding:0 10px}.hc-journey-card{top:6px;border-radius:9px;margin-bottom:5vh}.hc-journey-card-copy{padding:26px;min-height:460px;gap:24px}.hc-journey-card-art{min-height:250px}.hc-journey-card h3{font-size:clamp(2.65rem,11vw,4rem)}.hc-journey-card-copy p{font-size:1rem}.hc-journey-art-caption{font-size:clamp(2rem,9vw,3.2rem)}}
 @media(prefers-reduced-motion:reduce){.hc-journey-card-art--photo img,.hc-journey-link span{transition:none}}
+
+
+/* Stage 01: approved application photograph with original typographic overlay */
+.hc-journey-card-art--application img{object-position:48% center}
+.hc-journey-card-art--application:after{background:linear-gradient(180deg,transparent 22%,rgba(6,14,23,.16) 43%,rgba(6,14,23,.78) 100%)}
+.hc-journey-card-art--application .hc-journey-big-number{z-index:1;color:#fff;opacity:.22;text-shadow:0 3px 20px #0004}
+.hc-journey-card-art--application .hc-journey-art-caption{z-index:2;color:#fff;text-shadow:0 3px 16px #0009}
