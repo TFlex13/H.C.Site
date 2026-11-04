@@ -1,6 +1,9 @@
-title: ""
-description: "" 
+title: "Highline Connect"
+description: "Independent, commission-based retail sales opportunities connecting innovative brands with convenience stores and specialty retailers."
+url: "https://highlineconnect.com"
+baseurl: ""
+lang: en-US
 theme: jekyll-theme-cayman
-
 plugins:
   - jekyll-sitemap
+  - jekyll-seo-tag
