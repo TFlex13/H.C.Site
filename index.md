@@ -30,16 +30,30 @@ description: Explore independent, commission-based retail sales opportunities wi
   </div>
 </section>
 
-<section id="opportunity" class="hc-section hc-section--light">
-  <div class="hc-container">
-    <p class="hc-kicker">The opportunity</p>
-    <h2 class="hc-heading">Your relationships can become your greatest asset.</h2>
-    <p class="hc-lead">Represent products to local retailers, grow accounts through genuine connections, and earn commissions tied to your results.</p>
-    <div class="hc-grid">
-      <article class="hc-card"><span class="hc-card-index">01 / FLEXIBILITY</span><h3>Work independently</h3><p>Manage your schedule and approach as an independent contractor serving retailers in your territory.</p></article>
-      <article class="hc-card"><span class="hc-card-index">02 / ACCOUNT GROWTH</span><h3>Build lasting accounts</h3><p>Earn commissions on qualifying initial orders and future reorders from stores you bring into the network.</p></article>
-      <article class="hc-card"><span class="hc-card-index">03 / MULTI-BRAND</span><h3>Expand your offering</h3><p>As new brands join, introduce additional products to retailers you already know.</p></article>
+<section id="opportunity" class="hc-opportunity" aria-labelledby="opportunity-title">
+  <div class="hc-opportunity-topline"><span>THE INDEPENDENT ADVANTAGE</span><span>YOUR TERRITORY / YOUR PACE / YOUR POTENTIAL</span></div>
+  <div class="hc-opportunity-layout">
+    <div class="hc-opportunity-story">
+      <p class="hc-opportunity-label"><span class="hc-live-dot"></span> A DIFFERENT WAY TO SELL</p>
+      <h2 id="opportunity-title">Your city.<br>Your hustle.<br><em>Your upside.</em></h2>
+      <p class="hc-opportunity-intro">You already know the stores. Now imagine walking in with products worth talking about, building your own book of business, and earning commission when qualifying orders come in.</p>
+      <a class="hc-opportunity-cta" href="{{ '/apply' | relative_url }}">See if you're a fit <span aria-hidden="true">↗</span></a>
+      <div class="hc-opportunity-proof"><span class="hc-proof-line"></span><span>Independent contractor opportunity · Commission-based · No guaranteed earnings</span></div>
     </div>
+    <div class="hc-opportunity-visual">
+      <img src="{{ '/assets/images/Highline_connect_CS_Store_handshake.jpg' | relative_url }}" alt="Sales representative connecting with a retailer inside a convenience store" loading="lazy">
+      <div class="hc-visual-scrim"></div>
+      <div class="hc-visual-stamp" aria-hidden="true">ON THE<br>GROUND<span>↗</span></div>
+      <div class="hc-visual-bottom">
+        <span class="hc-visual-overline">FROM FIRST INTRODUCTION TO THE NEXT ORDER</span>
+        <strong>Make every visit count.</strong>
+      </div>
+    </div>
+  </div>
+  <div class="hc-opportunity-strip" aria-label="What makes this opportunity different">
+    <div class="hc-strip-item"><span class="hc-strip-number">01</span><div><strong>Set your own rhythm.</strong><p>Plan your store visits around your schedule.</p></div><span class="hc-strip-arrow" aria-hidden="true">↗</span></div>
+    <div class="hc-strip-item"><span class="hc-strip-number">02</span><div><strong>Build a book of business.</strong><p>Bring retailers on board and earn on qualifying reorders.</p></div><span class="hc-strip-arrow" aria-hidden="true">↗</span></div>
+    <div class="hc-strip-item"><span class="hc-strip-number">03</span><div><strong>Bring more to the table.</strong><p>Introduce additional brands as the lineup grows.</p></div><span class="hc-strip-arrow" aria-hidden="true">↗</span></div>
   </div>
 </section>
 
