@@ -4,3 +4,14 @@
 /* Wider cinematic hero composition: copy anchored left, footage remains visible */
 @media(min-width:851px){.hc-hero .hc-container{width:calc(100% - 10vw);max-width:1650px}.hc-hero h1{max-width:760px}.hc-hero p{max-width:580px}}
 @media(max-width:850px){.hc-hero:before{background:linear-gradient(90deg,rgba(11,17,27,.84),rgba(11,17,27,.36)),linear-gradient(0deg,rgba(11,17,27,.48),transparent 55%)}}
+
+/* The corporate presentation belongs in a complete, user-controlled player. */
+.hc-hero{background:#0b111b url('/assets/images/Highline_connect_CS_Store_handshake.jpg') center 46% / cover no-repeat}
+.hc-hero:before{background:linear-gradient(90deg,rgba(11,17,27,.96) 0%,rgba(11,17,27,.78) 39%,rgba(11,17,27,.36) 75%,rgba(11,17,27,.24) 100%)}
+.hc-video-section{padding:80px 0;background:#111925;color:#fff}
+.hc-video-layout{display:grid;grid-template-columns:minmax(240px,.65fr) minmax(0,1.35fr);gap:46px;align-items:center}
+.hc-video-intro .hc-heading{font-size:clamp(2rem,3.4vw,3.6rem);margin-bottom:20px}
+.hc-video-intro p:not(.hc-kicker){color:#cbd3dd;font-size:1.05rem}
+.hc-video-intro .hc-kicker{color:var(--gold)}
+.hc-feature-video{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:#000;border-radius:12px;box-shadow:0 22px 65px #0007}
+@media(max-width:850px){.hc-video-layout{grid-template-columns:1fr;gap:22px}.hc-video-section{padding:55px 0}.hc-hero:before{background:linear-gradient(90deg,rgba(11,17,27,.94),rgba(11,17,27,.58))}}
