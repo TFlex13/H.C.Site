@@ -1,250 +1,90 @@
 ---
 layout: default
-title: Highline Connect
+title: Independent Sales Representative Opportunities
+description: Explore independent, commission-based retail sales opportunities with Highline Connect. Build local store relationships and earn on qualifying reorders.
 ---
 
-<div class="hero-intro">
-
-<p class="hero-sub">
-Independent sales built for real-world relationships.
-</p>
-
-<p class="hero-desc">
-Join a national network of independent sales reps introducing innovative brands
-to convenience stores and specialty retailers in their communities.
-</p>
-
-<div class="hero-video">
-
-<video autoplay muted loop playsinline controls>
-  <source src="{{ '/assets/Videos/HLC_Corp_compressed.mp4' | relative_url }}" type="video/mp4">
-</video>
-
-</div>
-
-</div>
----
-
-## What We Do
-
-<div class="what-we-do">
-
-<div class="what-we-do-image">
-<img src="{{ '/assets/images/Highline_connect_CS_Store_handshake.jpg' | relative_url }}" alt="Retail sales representative meeting with store owner">
-</div>
-
-<div class="what-we-do-text">
-
-<h3>Boots-on-the-Ground Sales</h3>
-<p>
-  Highline Connect builds real relationships between brands and retailers.
-  Our independent sales reps visit convenience stores, general stores, and specialty retailers in their territories to introduce innovative products and secure shelf placement.
-</p>
-
-<h3>Account Ownership</h3>
-<p>
-  When a rep brings a store on board, that store becomes their account.
-  Reps earn commission not only on the first order, but also on future reorders, creating long-term residual income.
-</p>
-
-<h3>Multi-Brand Opportunity</h3>
-<p>
-  As Highline Connect partners with new brands, reps can revisit their existing stores and expand the product lineup they offer, increasing revenue from the same client relationships.
-</p>
-
-</div>
-
-</div>
----
-
-## Who This Is For
-
-<div class="fit-section">
-
-  <p class="fit-intro">This is a fit if you:</p>
-
-  <div class="fit-grid">
-    <div class="fit-card">
-      <img src="{{ '/assets/images/icon-relationships.png' | relative_url }}" alt="Relationships icon">
-      <p>Like talking to people and building local relationships</p>
-    </div>
-
-    <div class="fit-card">
-      <img src="{{ '/assets/images/icon-flexibility.png' | relative_url }}" alt="Flexibility icon">
-      <p>Prefer flexible work with control over your schedule and territory</p>
-    </div>
-
-    <div class="fit-card">
-      <img src="{{ '/assets/images/icon-performance.png' | relative_url }}" alt="Performance icon">
-      <p>Want performance-based upside with residual commissions</p>
-    </div>
-
-    <div class="fit-card">
-      <img src="{{ '/assets/images/icon-samplekit.png' | relative_url }}" alt="Sample kit icon">
-      <p>Can invest in a small sample kit used as your sales toolkit</p>
+<section class="hc-hero" aria-labelledby="hero-title">
+  <video autoplay muted loop playsinline preload="metadata" aria-hidden="true">
+    <source src="{{ '/assets/Videos/HLC_Corp_compressed.mp4' | relative_url }}" type="video/mp4">
+  </video>
+  <div class="hc-container hc-hero-inner">
+    <span class="hc-eyebrow">Independent sales. Real relationships.</span>
+    <h1 id="hero-title">Build relationships.<br><em>Own your territory.</em></h1>
+    <p>Join a national network of independent sales representatives connecting innovative brands with convenience stores and specialty retailers.</p>
+    <div class="hc-actions">
+      <a class="hc-button" href="{{ '/apply' | relative_url }}">Apply to Join</a>
+      <a class="hc-secondary-link" href="#opportunity">Explore the opportunity ↓</a>
     </div>
   </div>
+</section>
 
-</div>
-
----
-
-## How It Works
-
-<div class="process-flow">
-
-  <div class="process-step">
-    <div class="process-number">1</div>
-    <h3>Apply</h3>
-    <p>Submit a quick application so we can verify basic fit and territory details.</p>
-  </div>
-
-  <div class="process-step">
-    <div class="process-number">2</div>
-    <h3>Get Approved</h3>
-    <p>If approved, you’ll receive next steps and access to training resources.</p>
-  </div>
-
-  <div class="process-step">
-    <div class="process-number">3</div>
-    <h3>Purchase Your Sample Kit</h3>
-    <p>Each brand may require a sample kit used as your sales toolkit for in-store presentations.</p>
-  </div>
-
-  <div class="process-step">
-    <div class="process-number">4</div>
-    <h3>Visit Local Stores</h3>
-    <p>Introduce products, answer questions, and build interest with retailers in your territory.</p>
-  </div>
-
-  <div class="process-step">
-    <div class="process-number">5</div>
-    <h3>Place the First Order</h3>
-    <p>When a store is ready, use the brand’s order portal to submit the first order.</p>
-  </div>
-
-  <div class="process-step">
-    <div class="process-number">6</div>
-    <h3>Earn Commissions + Residuals</h3>
-    <p>Earn on the initial order and ongoing reorders from stores you brought in.</p>
-  </div>
-
-</div>
-
-## What You Get
-
-<div class="what-you-get">
-
-  <div class="what-you-get-image">
-    <img src="{{ '/assets/images/Highline_Connect_CS_Store_Ordering.jpg' | relative_url }}" alt="Sales rep helping store place order">
-  </div>
-
-  <div class="what-you-get-content">
-
-    <div class="get-item">
-      <h3>Training Resources</h3>
-      <div class="get-card">
-        <p>Scripts, pitch frameworks, and objection-handling guidance to help you confidently introduce products to retailers.</p>
-      </div>
+<section id="opportunity" class="hc-section hc-section--light">
+  <div class="hc-container">
+    <p class="hc-kicker">The opportunity</p>
+    <h2 class="hc-heading">Your relationships can become your greatest asset.</h2>
+    <p class="hc-lead">Represent products to local retailers, grow accounts through genuine connections, and earn commissions tied to your results.</p>
+    <div class="hc-grid">
+      <article class="hc-card"><span class="hc-card-index">01 / FLEXIBILITY</span><h3>Work independently</h3><p>Manage your schedule and approach as an independent contractor serving retailers in your territory.</p></article>
+      <article class="hc-card"><span class="hc-card-index">02 / ACCOUNT GROWTH</span><h3>Build lasting accounts</h3><p>Earn commissions on qualifying initial orders and future reorders from stores you bring into the network.</p></article>
+      <article class="hc-card"><span class="hc-card-index">03 / MULTI-BRAND</span><h3>Expand your offering</h3><p>As new brands join, introduce additional products to retailers you already know.</p></article>
     </div>
+  </div>
+</section>
 
-    <div class="get-item">
-      <h3>Brand Assets</h3>
-      <div class="get-card">
-        <p>Sell sheets, product highlights, and pricing guidance so you can clearly communicate value in-store.</p>
-      </div>
+<section class="hc-section hc-section--white">
+  <div class="hc-container hc-split">
+    <img src="{{ '/assets/images/Highline_connect_CS_Store_handshake.jpg' | relative_url }}" alt="Independent retail sales representative meeting with a store owner" loading="lazy">
+    <div>
+      <p class="hc-kicker">Built for the real world</p>
+      <h2 class="hc-heading">Personal connections. Measurable results.</h2>
+      <p class="hc-lead">Highline Connect connects brands and retailers through in-person conversations, product introductions, and ongoing account relationships.</p>
+      <ul class="hc-points">
+        <li><strong>Visit local stores</strong><span>Introduce products to convenience stores, general stores, and specialty retailers.</span></li>
+        <li><strong>Help retailers get started</strong><span>Present products and submit initial orders through the brand's ordering process.</span></li>
+        <li><strong>Support repeat business</strong><span>Grow your accounts as retailers reorder and new products become available.</span></li>
+      </ul>
     </div>
+  </div>
+</section>
 
-    <div class="get-item">
-      <h3>Simple Ordering Process</h3>
-      <div class="get-card">
-        <p>A straightforward process for placing first orders and supporting reorders through brand order portals.</p>
-      </div>
+<section id="how-it-works" class="hc-section hc-section--dark">
+  <div class="hc-container">
+    <p class="hc-kicker">Your path forward</p>
+    <h2 class="hc-heading">A clear way to get started.</h2>
+    <p class="hc-lead">From application to your first retail conversations, the process is designed around real-world selling.</p>
+    <div class="hc-steps">
+      <div class="hc-step"><b>01</b><h3>Apply and get reviewed</h3><p>Tell us about your experience and territory. We review applications based on fit and current opportunities.</p></div>
+      <div class="hc-step"><b>02</b><h3>Prepare to represent brands</h3><p>If approved, access training resources and purchase any required sample kit for your sales presentations.</p></div>
+      <div class="hc-step"><b>03</b><h3>Build your retail accounts</h3><p>Visit stores, introduce products, place initial orders, and develop relationships that may lead to reorders.</p></div>
     </div>
+  </div>
+</section>
 
-    <div class="get-item">
-      <h3>Growing Brand Catalog</h3>
-      <div class="get-card">
-        <p>An expanding lineup of innovative brands you can introduce to your local store network.</p>
-      </div>
+<section class="hc-section hc-section--light">
+  <div class="hc-container hc-split">
+    <div>
+      <p class="hc-kicker">Tools to help you succeed</p>
+      <h2 class="hc-heading">Independent doesn't mean unsupported.</h2>
+      <p class="hc-lead">Approved representatives receive resources designed to make product introductions and retailer conversations easier.</p>
+      <ul class="hc-points">
+        <li><strong>Training resources</strong><span>Sales scripts, pitch frameworks, and objection-handling guidance.</span></li>
+        <li><strong>Brand materials</strong><span>Product information, sell sheets, and pricing guidance.</span></li>
+        <li><strong>Ordering support</strong><span>Brand order portals for initial orders and reorders.</span></li>
+      </ul>
     </div>
-
+    <img src="{{ '/assets/images/Highline_Connect_CS_Store_Ordering.jpg' | relative_url }}" alt="Sales representative assisting a retailer with an order" loading="lazy">
   </div>
-
-</div>
-
-## Why Highline Connect
-
-<div class="why-highline">
-
-  <div class="brand-marquee">
-    <div class="brand-track">
-
-  <div class="brand-group">
-    <img src="{{ '/assets/images/Archer_logo.png' | relative_url }}" alt="Archer">
-    <img src="{{ '/assets/images/C2O_Coconut_water_logo.png' | relative_url }}" alt="C2O">
-    <img src="{{ '/assets/images/Ghost-Logo.png' | relative_url }}" alt="Ghost">
-    <img src="{{ '/assets/images/lenny-larrys-logo-black.png' | relative_url }}" alt="Lenny and Larry's">
-    <img src="{{ '/assets/images/Liquid-Death-Logo.png' | relative_url }}" alt="Liquid Death">
-    <img src="{{ '/assets/images/Nantucket_crisps_logo.png' | relative_url }}" alt="Nantucket Crisps">
-    <img src="{{ '/assets/images/OLIPOP_logo.png' | relative_url }}" alt="OLIPOP">
-    <img src="{{ '/assets/images/RedHawk_Logo.png' | relative_url }}" alt="RedHawk">
-    <img src="{{ '/assets/images/Snak_Club_Logo.png' | relative_url }}" alt="Snak Club">
-    <img src="{{ '/assets/images/suorin-logo.png' | relative_url }}" alt="Suorin">
+  <div class="hc-container">
+    <div class="hc-disclosure"><p><strong>Important:</strong> This is a 1099 independent contractor opportunity, not salaried employment. Compensation is 100% commission-based, with no guaranteed earnings. Sample kits may require a purchase and are used as sales tools. Results depend on effort, territory, and performance.</p></div>
   </div>
+</section>
 
-  <div class="brand-group">
-    <img src="{{ '/assets/images/Archer_logo.png' | relative_url }}" alt="Archer">
-    <img src="{{ '/assets/images/C2O_Coconut_water_logo.png' | relative_url }}" alt="C2O">
-    <img src="{{ '/assets/images/Ghost-Logo.png' | relative_url }}" alt="Ghost">
-    <img src="{{ '/assets/images/lenny-larrys-logo-black.png' | relative_url }}" alt="Lenny and Larry's">
-    <img src="{{ '/assets/images/Liquid-Death-Logo.png' | relative_url }}" alt="Liquid Death">
-    <img src="{{ '/assets/images/Nantucket_crisps_logo.png' | relative_url }}" alt="Nantucket Crisps">
-    <img src="{{ '/assets/images/OLIPOP_logo.png' | relative_url }}" alt="OLIPOP">
-    <img src="{{ '/assets/images/RedHawk_Logo.png' | relative_url }}" alt="RedHawk">
-    <img src="{{ '/assets/images/Snak_Club_Logo.png' | relative_url }}" alt="Snak Club">
-    <img src="{{ '/assets/images/suorin-logo.png' | relative_url }}" alt="Suorin">
+<section class="hc-section hc-final">
+  <div class="hc-container">
+    <p class="hc-kicker">Ready for what's next?</p>
+    <h2 class="hc-heading">Build something on your own terms.</h2>
+    <p class="hc-lead">Bring innovative brands to local retailers and develop relationships that can grow over time.</p>
+    <a class="hc-button" href="{{ '/apply' | relative_url }}">Apply to Highline Connect</a>
   </div>
-
-</div>
-  </div>
-
-  <div class="why-copy">
-    <h3>We’re not tied to one product.</h3>
-    <p>
-      As we add more brands, you can increase your earnings by introducing new products to stores already in your network.
-    </p>
-    <p>
-      This model rewards consistency and relationship-building, not clocking in.
-    </p>
-  </div>
-
-</div>
-
-## Ready to Get Started?
-
-<div class="final-cta">
-
-<h2>Start Building Your Accounts Today</h2>
-
-<p>
-Represent innovative brands, build relationships with local retailers,
-and earn commission plus residual income as your accounts reorder.
-</p>
-
-<a href="{{ '/apply' | relative_url }}" class="final-cta-button">
-Apply Today
-</a>
-
-</div>
-
-## Important Notes (Read This)
-
-<div class="important-notes-box">
-  <ul>
-    <li><strong>Independent contractor role (1099).</strong> You control your schedule and approach.</li>
-    <li><strong>100% commission-based.</strong> No salary or hourly wage.</li>
-    <li><strong>Earnings vary by effort, territory, and results.</strong> No income claims or guarantees.</li>
-    <li><strong>Sample kits are sales tools.</strong> They are typically not left with stores.</li>
-  </ul>
-</div>
+</section>
