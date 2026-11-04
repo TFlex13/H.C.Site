@@ -15,3 +15,6 @@
 .hc-video-intro .hc-kicker{color:var(--gold)}
 .hc-feature-video{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;background:#000;border-radius:12px;box-shadow:0 22px 65px #0007}
 @media(max-width:850px){.hc-video-layout{grid-template-columns:1fr;gap:22px}.hc-video-section{padding:55px 0}.hc-hero:before{background:linear-gradient(90deg,rgba(11,17,27,.94),rgba(11,17,27,.58))}}
+
+/* Highline 2.0 approved hero photo */
+.hc-hero{background-image:url('/assets/images/highline-hero.jpg');background-position:center 46%}
