@@ -132,7 +132,8 @@
 
 /* Journey image number system: legible outlined numerals over photography */
 .hc-journey-card-art--application .hc-journey-big-number,
-.hc-journey-card-art--store-visit .hc-journey-big-number{
+.hc-journey-card-art--store-visit .hc-journey-big-number,
+.hc-journey-card-art--ordering .hc-journey-big-number{
   z-index:1;
   left:3%;
   top:45%;
@@ -155,8 +156,12 @@
 }
 @media(max-width:900px){
   .hc-journey-card-art--application .hc-journey-big-number,
-  .hc-journey-card-art--store-visit .hc-journey-big-number{
+  .hc-journey-card-art--store-visit .hc-journey-big-number,
+  .hc-journey-card-art--ordering .hc-journey-big-number{
     font-size:clamp(12rem,47vw,27rem);
     -webkit-text-stroke:2px rgba(255,255,255,.88);
   }
 }
+
+/* Keep step 03 caption readable above the outlined numeral. */
+.hc-journey-card-art--ordering .hc-journey-photo-caption{z-index:2;text-shadow:0 3px 16px rgba(0,0,0,.9)}
