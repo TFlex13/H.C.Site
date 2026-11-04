@@ -54,3 +54,28 @@
 @media(min-width:1500px){.hc-opportunity-layout{grid-template-columns:47% 53%}.hc-opportunity-story{padding-left:clamp(60px,7vw,160px)}}
 @media(max-width:1000px){.hc-opportunity-layout{grid-template-columns:1fr}.hc-opportunity-story{padding:70px 7vw}.hc-opportunity-visual{min-height:500px}.hc-opportunity-strip{grid-template-columns:1fr 1fr}.hc-strip-item:last-child{grid-column:1/-1;border-top:1px solid #ffffff22}.hc-opportunity-story h2{font-size:clamp(3.8rem,9vw,6.5rem)}}
 @media(max-width:600px){.hc-opportunity-topline{font-size:.59rem;padding:14px 18px}.hc-opportunity-topline span:last-child{display:none}.hc-opportunity-story{padding:58px 22px}.hc-opportunity-story h2{font-size:clamp(3.25rem,13vw,5rem)}.hc-opportunity-visual{min-height:380px}.hc-visual-stamp{width:92px;height:92px;font-size:.84rem}.hc-visual-stamp span{bottom:11px;right:15px}.hc-opportunity-strip{grid-template-columns:1fr}.hc-strip-item,.hc-strip-item:last-child{grid-column:auto;border-right:0;border-top:1px solid #ffffff22;padding:26px 22px;min-height:0}}
+
+
+/* Opportunity legibility and subtle motion pass */
+.hc-opportunity-topline{font-size:clamp(.75rem,.82vw,.95rem);letter-spacing:.12em}
+.hc-opportunity-label{font-size:clamp(.9rem,1vw,1.05rem);letter-spacing:.12em}
+.hc-opportunity-intro{font-size:clamp(1.14rem,1.25vw,1.4rem);line-height:1.6;max-width:620px}
+.hc-opportunity-proof{font-size:clamp(.87rem,.95vw,1rem);max-width:560px}
+.hc-opportunity-cta{font-size:1.08rem}
+.hc-opportunity-cta span{font-size:2rem;transition:transform .25s ease}
+.hc-opportunity-cta:hover span{transform:translate(4px,-4px)}
+.hc-visual-overline{font-size:clamp(.83rem,.95vw,1.04rem);letter-spacing:.1em}
+.hc-strip-number{font-size:1.08rem}
+.hc-strip-item strong{font-size:clamp(1.15rem,1.4vw,1.55rem)}
+.hc-strip-item p{font-size:clamp(1rem,1.08vw,1.18rem);line-height:1.55}
+.hc-strip-arrow{font-size:2.2rem;line-height:1;transition:transform .28s ease,color .28s ease}
+.hc-strip-item{transition:background .28s ease}
+.hc-strip-item:hover{background:#1a2a38}
+.hc-strip-item:hover .hc-strip-arrow{transform:translate(7px,-7px);color:#fff}
+.hc-visual-stamp{width:142px;height:142px;font-size:1.2rem;animation:hc-stamp-float 4.2s ease-in-out infinite;transition:box-shadow .3s ease,background .3s ease;will-change:transform}
+.hc-visual-stamp span{font-size:1.8rem}
+.hc-opportunity-visual:hover .hc-visual-stamp{animation:hc-stamp-hover .6s ease-in-out infinite alternate;background:#f3c970;box-shadow:0 14px 45px #0006}
+@keyframes hc-stamp-float{0%,100%{transform:translateY(0) rotate(12deg)}50%{transform:translateY(-14px) rotate(7deg)}}
+@keyframes hc-stamp-hover{from{transform:translateY(-10px) rotate(6deg) scale(1.05)}to{transform:translateY(-17px) rotate(16deg) scale(1.1)}}
+@media(max-width:600px){.hc-opportunity-topline{font-size:.75rem}.hc-opportunity-intro{font-size:1.1rem}.hc-opportunity-proof{font-size:.85rem}.hc-visual-stamp{width:100px;height:100px;font-size:.9rem}.hc-visual-stamp span{font-size:1.35rem;bottom:12px;right:17px}.hc-strip-arrow{font-size:1.9rem}}
+@media(prefers-reduced-motion:reduce){.hc-visual-stamp,.hc-opportunity-visual:hover .hc-visual-stamp{animation:none!important;transform:rotate(12deg)}.hc-strip-item,.hc-strip-arrow,.hc-opportunity-cta span{transition:none!important}}
