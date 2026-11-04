@@ -77,7 +77,7 @@ description: Explore independent, commission-based retail sales opportunities wi
     </article>
     <article class="hc-journey-card hc-journey-card--four">
       <div class="hc-journey-card-copy"><div class="hc-journey-meta"><span>04 / 04</span><span>THE LONG GAME</span></div><div><span class="hc-journey-symbol" aria-hidden="true">↗</span><h3>Make the sale.<br>Keep building.</h3><p>Earn commissions on qualifying initial sales and eligible reorders from accounts you bring into the network. Keep serving retailers and introducing new products as brands become available.</p><p class="hc-journey-note">Independent contractor role. Commission-based compensation; no guaranteed earnings.</p></div><span class="hc-journey-card-footer">BUILD ACCOUNTS THAT CAN KEEP GROWING.</span></div>
-      <div class="hc-journey-card-art hc-journey-card-art--type hc-journey-card-art--final"><span class="hc-journey-big-number" aria-hidden="true">04</span><div class="hc-journey-art-caption">THE NEXT ORDER<br>STARTS WITH YOU.</div></div>
+      <div class="hc-journey-card-art hc-journey-card-art--photo hc-journey-card-art--commissions"><img src="{{ '/assets/images/highline-connect-recurring-reorder-commissions.webp' | relative_url }}" alt="Highline Connect branded phone displaying an illustrative growth chart and recurring retailer reorder activity beside a coffee mug in a convenience store" loading="lazy"><span class="hc-journey-big-number" aria-hidden="true">04</span><div class="hc-journey-art-caption">YOUR FIRST SALE IS<br>JUST THE BEGINNING.</div></div>
     </article>
   </div>
 </section>
