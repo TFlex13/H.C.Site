@@ -19,9 +19,9 @@ description: Explore independent, commission-based retail sales opportunities wi
 <section class="hc-video-section" aria-labelledby="hc-video-title">
   <div class="hc-container hc-video-layout">
     <div class="hc-video-intro">
-      <p class="hc-kicker">See Highline Connect in action</p>
-      <h2 id="hc-video-title" class="hc-heading">Get the full picture.</h2>
-      <p>Watch our presentation with sound. The complete video stays visible, including its original captions and graphics.</p>
+      <p class="hc-kicker">Connecting brands and retailers</p>
+      <h2 id="hc-video-title" class="hc-heading">Real Relationships.<br>Real Opportunities.</h2>
+      <p>Highline Connect brings independent sales representatives and innovative brands together to reach retailers nationwide. Build valuable store relationships, introduce products businesses want to carry, and create opportunities for ongoing commission income.</p>
     </div>
     <video class="hc-feature-video" controls playsinline preload="metadata" aria-label="Highline Connect company presentation">
       <source src="{{ '/assets/Videos/HLC_Corp_compressed.mp4' | relative_url }}" type="video/mp4">
