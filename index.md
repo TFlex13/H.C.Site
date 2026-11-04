@@ -57,32 +57,28 @@ description: Explore independent, commission-based retail sales opportunities wi
   </div>
 </section>
 
-<section class="hc-section hc-section--white">
-  <div class="hc-container hc-split">
-    <img src="{{ '/assets/images/Highline_connect_CS_Store_handshake.jpg' | relative_url }}" alt="Independent retail sales representative meeting with a store owner" loading="lazy">
-    <div>
-      <p class="hc-kicker">Built for the real world</p>
-      <h2 class="hc-heading">Personal connections. Measurable results.</h2>
-      <p class="hc-lead">Highline Connect connects brands and retailers through in-person conversations, product introductions, and ongoing account relationships.</p>
-      <ul class="hc-points">
-        <li><strong>Visit local stores</strong><span>Introduce products to convenience stores, general stores, and specialty retailers.</span></li>
-        <li><strong>Help retailers get started</strong><span>Present products and submit initial orders through the brand's ordering process.</span></li>
-        <li><strong>Support repeat business</strong><span>Grow your accounts as retailers reorder and new products become available.</span></li>
-      </ul>
-    </div>
+<section id="how-it-works" class="hc-journey" aria-labelledby="journey-heading">
+  <div class="hc-journey-heading">
+    <div><p class="hc-journey-eyebrow">THE ROAD FROM APPLICATION TO COMMISSION</p><h2 id="journey-heading">Four steps.<br><span>One direction: forward.</span></h2></div>
+    <p>From your first application to a growing roster of retail accounts, here's what the work actually looks like.</p>
   </div>
-</section>
-
-<section id="how-it-works" class="hc-section hc-section--dark">
-  <div class="hc-container">
-    <p class="hc-kicker">Your path forward</p>
-    <h2 class="hc-heading">A clear way to get started.</h2>
-    <p class="hc-lead">From application to your first retail conversations, the process is designed around real-world selling.</p>
-    <div class="hc-steps">
-      <div class="hc-step"><b>01</b><h3>Apply and get reviewed</h3><p>Tell us about your experience and territory. We review applications based on fit and current opportunities.</p></div>
-      <div class="hc-step"><b>02</b><h3>Prepare to represent brands</h3><p>If approved, access training resources and purchase any required sample kit for your sales presentations.</p></div>
-      <div class="hc-step"><b>03</b><h3>Build your retail accounts</h3><p>Visit stores, introduce products, place initial orders, and develop relationships that may lead to reorders.</p></div>
-    </div>
+  <div class="hc-journey-track" aria-label="Four stages of becoming a Highline Connect representative">
+    <article class="hc-journey-card hc-journey-card--one">
+      <div class="hc-journey-card-copy"><div class="hc-journey-meta"><span>01 / 04</span><span>THE START</span></div><div><span class="hc-journey-symbol" aria-hidden="true">✦</span><h3>Apply.<br>Get approved.</h3><p>Tell us about your experience and where you want to work. We review applications for fit and available territories. If selected, you'll receive next steps and information about any required sample kit.</p><a href="{{ '/apply' | relative_url }}" class="hc-journey-link">Start your application <span aria-hidden="true">↗</span></a></div><span class="hc-journey-card-footer">YOUR FIRST MOVE</span></div>
+      <div class="hc-journey-card-art hc-journey-card-art--type"><span class="hc-journey-big-number" aria-hidden="true">01</span><div class="hc-journey-art-caption">IT STARTS WITH<br>ONE APPLICATION.</div></div>
+    </article>
+    <article class="hc-journey-card hc-journey-card--two">
+      <div class="hc-journey-card-copy"><div class="hc-journey-meta"><span>02 / 04</span><span>OUT IN THE FIELD</span></div><div><span class="hc-journey-symbol" aria-hidden="true">↗</span><h3>Walk in.<br>Stand out.</h3><p>Visit convenience stores and specialty retailers in your area. Introduce the brands you represent, show what makes their products worth stocking, and start the conversation.</p></div><span class="hc-journey-card-footer">REAL STORES. REAL CONVERSATIONS.</span></div>
+      <div class="hc-journey-card-art hc-journey-card-art--photo"><img src="{{ '/assets/images/highline-hero.jpg' | relative_url }}" alt="Representative greeting a retailer inside a store" loading="lazy"><span class="hc-journey-photo-caption">MAKE THE INTRODUCTION.</span></div>
+    </article>
+    <article class="hc-journey-card hc-journey-card--three">
+      <div class="hc-journey-card-copy"><div class="hc-journey-meta"><span>03 / 04</span><span>MAKE IT HAPPEN</span></div><div><span class="hc-journey-symbol" aria-hidden="true">✓</span><h3>Show the value.<br>Help them order.</h3><p>When a retailer is ready, help them choose products and submit their first order through the appropriate brand ordering process. A good introduction can become an ongoing account.</p></div><span class="hc-journey-card-footer">FROM CONVERSATION TO CHECKOUT.</span></div>
+      <div class="hc-journey-card-art hc-journey-card-art--photo"><img src="{{ '/assets/images/Highline_Connect_CS_Store_Ordering.jpg' | relative_url }}" alt="Sales representative assisting a retailer with product ordering" loading="lazy"><span class="hc-journey-photo-caption">TURN INTEREST INTO ACTION.</span></div>
+    </article>
+    <article class="hc-journey-card hc-journey-card--four">
+      <div class="hc-journey-card-copy"><div class="hc-journey-meta"><span>04 / 04</span><span>THE LONG GAME</span></div><div><span class="hc-journey-symbol" aria-hidden="true">↗</span><h3>Make the sale.<br>Keep building.</h3><p>Earn commissions on qualifying initial sales and eligible reorders from accounts you bring into the network. Keep serving retailers and introducing new products as brands become available.</p><p class="hc-journey-note">Independent contractor role. Commission-based compensation; no guaranteed earnings.</p></div><span class="hc-journey-card-footer">BUILD ACCOUNTS THAT CAN KEEP GROWING.</span></div>
+      <div class="hc-journey-card-art hc-journey-card-art--type hc-journey-card-art--final"><span class="hc-journey-big-number" aria-hidden="true">04</span><div class="hc-journey-art-caption">THE NEXT ORDER<br>STARTS WITH YOU.</div></div>
+    </article>
   </div>
 </section>
 
