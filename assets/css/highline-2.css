@@ -128,3 +128,35 @@
 .hc-journey-card-art--application:after{background:linear-gradient(180deg,transparent 22%,rgba(6,14,23,.16) 43%,rgba(6,14,23,.78) 100%)}
 .hc-journey-card-art--application .hc-journey-big-number{z-index:1;color:#fff;opacity:.22;text-shadow:0 3px 20px #0004}
 .hc-journey-card-art--application .hc-journey-art-caption{z-index:2;color:#fff;text-shadow:0 3px 16px #0009}
+
+
+/* Journey image number system: legible outlined numerals over photography */
+.hc-journey-card-art--application .hc-journey-big-number,
+.hc-journey-card-art--store-visit .hc-journey-big-number{
+  z-index:1;
+  left:3%;
+  top:45%;
+  font-size:clamp(17rem,34vw,42rem);
+  line-height:1;
+  letter-spacing:-.11em;
+  color:rgba(255,255,255,.16);
+  -webkit-text-stroke:3px rgba(255,255,255,.88);
+  paint-order:stroke fill;
+  opacity:1;
+  text-shadow:0 3px 24px rgba(0,0,0,.45),0 0 18px rgba(255,255,255,.25);
+  pointer-events:none;
+}
+.hc-journey-card-art--store-visit:after{
+  background:linear-gradient(180deg,rgba(7,17,29,.05) 10%,rgba(7,17,29,.12) 40%,rgba(7,17,29,.82) 100%);
+}
+.hc-journey-card-art--store-visit .hc-journey-photo-caption{
+  z-index:2;
+  text-shadow:0 3px 16px rgba(0,0,0,.9);
+}
+@media(max-width:900px){
+  .hc-journey-card-art--application .hc-journey-big-number,
+  .hc-journey-card-art--store-visit .hc-journey-big-number{
+    font-size:clamp(12rem,47vw,27rem);
+    -webkit-text-stroke:2px rgba(255,255,255,.88);
+  }
+}
