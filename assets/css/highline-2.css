@@ -324,3 +324,9 @@
 
 /* Journey heading: blue directional emphasis */
 .hc-journey-heading h2 span{color:#0099c6}
+
+/* First journey tile: orange label, star and application link */
+.hc-journey-card--one .hc-journey-meta span:last-child{color:#d76a24}
+.hc-journey-card--one .hc-journey-symbol{color:#d76a24}
+.hc-journey-card--one .hc-journey-link{color:#d76a24;border-bottom-color:#d76a24}
+.hc-journey-card--one .hc-journey-link .hc-trend-arrow{width:1.2em;height:1.2em}
