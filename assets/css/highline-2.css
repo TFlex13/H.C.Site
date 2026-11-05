@@ -318,3 +318,6 @@
 .hc-opportunity-cta .hc-trend-arrow{width:1.35em;height:1.35em}
 .hc-visual-stamp .hc-trend-arrow{width:1em;height:1em}
 .hc-strip-arrow .hc-trend-arrow{width:1.1em;height:1.1em}
+
+/* Larger trend arrows in the three advantage cards */
+.hc-strip-arrow .hc-trend-arrow{width:2.6em;height:2.6em}
