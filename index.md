@@ -82,23 +82,24 @@ description: Explore independent, commission-based retail sales opportunities wi
   </div>
 </section>
 
-<section class="hc-section hc-section--light">
-  <div class="hc-container hc-split">
-    <div>
-      <p class="hc-kicker">Tools to help you succeed</p>
-      <h2 class="hc-heading">Independent doesn't mean unsupported.</h2>
-      <p class="hc-lead">Approved representatives receive resources designed to make product introductions and retailer conversations easier.</p>
-      <ul class="hc-points">
-        <li><strong>Training resources</strong><span>Sales scripts, pitch frameworks, and objection-handling guidance.</span></li>
-        <li><strong>Brand materials</strong><span>Product information, sell sheets, and pricing guidance.</span></li>
-        <li><strong>Ordering support</strong><span>Brand order portals for initial orders and reorders.</span></li>
-      </ul>
+<section class="hc-training" aria-labelledby="hc-training-title">
+  <div class="hc-training-layout">
+    <div class="hc-training-photo">
+      <img src="{{ '/assets/images/highline-connect-training-materials-corrected.webp' | relative_url }}" alt="Highline Connect representative training materials including a laptop with training resources, sales guide, product sell sheets, and ordering information" loading="lazy" decoding="async">
+      <span class="hc-training-photo-tag">PREPARE. PRESENT. GROW.</span>
     </div>
-    <img src="{{ '/assets/images/Highline_Connect_CS_Store_Ordering.jpg' | relative_url }}" alt="Sales representative assisting a retailer with an order" loading="lazy">
+    <div class="hc-training-content">
+      <p class="hc-training-eyebrow">Every great rep starts somewhere</p>
+      <h2 id="hc-training-title">Your territory.<br>Your ambition.<br><em>Our tools.</em></h2>
+      <p class="hc-training-intro">You bring the drive. Highline Connect helps you prepare with product information, sales resources, and ordering tools designed to make every store visit count.</p>
+      <div class="hc-training-resources">
+        <div class="hc-training-resource"><span class="hc-training-resource-icon" aria-hidden="true">01</span><div><h3>Learn the pitch</h3><p>Sales scripts, conversation frameworks, and guidance for handling objections.</p></div></div>
+        <div class="hc-training-resource"><span class="hc-training-resource-icon" aria-hidden="true">02</span><div><h3>Know the products</h3><p>Brand information, product details, sell sheets, and pricing guidance.</p></div></div>
+        <div class="hc-training-resource"><span class="hc-training-resource-icon" aria-hidden="true">03</span><div><h3>Make ordering simple</h3><p>Access brand ordering portals for initial orders and eligible reorders.</p></div></div>
+      </div>
+    </div>
   </div>
-  <div class="hc-container">
-    <div class="hc-disclosure"><p><strong>Important:</strong> This is a 1099 independent contractor opportunity, not salaried employment. Compensation is 100% commission-based, with no guaranteed earnings. Sample kits may require a purchase and are used as sales tools. Results depend on effort, territory, and performance.</p></div>
-  </div>
+  <div class="hc-training-disclosure-wrap"><div class="hc-training-disclosure"><p><strong>Important:</strong> This is a 1099 independent contractor opportunity, not salaried employment. Compensation is 100% commission-based, with no guaranteed earnings. Sample kits may require a purchase and are used as sales tools. Results depend on effort, territory, and performance.</p></div></div>
 </section>
 
 <section class="hc-section hc-final">
