@@ -38,7 +38,7 @@ description: Explore independent, commission-based retail sales opportunities wi
       <h2 id="opportunity-title">Your city.<br>Your hustle.<br><em>Your upside.</em></h2>
       <p class="hc-opportunity-intro">You already know the stores. Now imagine walking in with products worth talking about, building your own book of business, and earning commission when qualifying orders come in.</p>
       <a class="hc-opportunity-cta" href="{{ '/apply' | relative_url }}">See if you're a fit <span aria-hidden="true">↗</span></a>
-      <div class="hc-opportunity-proof"><span class="hc-proof-line"></span><span>Independent contractor opportunity · Commission-based · No guaranteed earnings</span></div>
+      
     </div>
     <div class="hc-opportunity-visual">
       <img src="{{ '/assets/images/Highline_connect_CS_Store_handshake.jpg' | relative_url }}" alt="Sales representative connecting with a retailer inside a convenience store" loading="lazy">
@@ -76,7 +76,7 @@ description: Explore independent, commission-based retail sales opportunities wi
       <div class="hc-journey-card-art hc-journey-card-art--photo hc-journey-card-art--ordering"><img src="{{ '/assets/images/Highline_Connect_CS_Store_Ordering.jpg' | relative_url }}" alt="Sales representative assisting a retailer with product ordering" loading="lazy"><span class="hc-journey-big-number" aria-hidden="true">03</span><span class="hc-journey-photo-caption">TURN INTEREST INTO ACTION.</span></div>
     </article>
     <article class="hc-journey-card hc-journey-card--four">
-      <div class="hc-journey-card-copy"><div class="hc-journey-meta"><span>04 / 04</span><span>THE LONG GAME</span></div><div><span class="hc-journey-symbol" aria-hidden="true">↗</span><h3>Make the sale.<br>Keep building.</h3><p>Earn commissions on qualifying initial sales and eligible reorders from accounts you bring into the network. Keep serving retailers and introducing new products as brands become available.</p><p class="hc-journey-note">Independent contractor role. Commission-based compensation; no guaranteed earnings.</p></div><span class="hc-journey-card-footer">BUILD ACCOUNTS THAT CAN KEEP GROWING.</span></div>
+      <div class="hc-journey-card-copy"><div class="hc-journey-meta"><span>04 / 04</span><span>THE LONG GAME</span></div><div><span class="hc-journey-symbol" aria-hidden="true">↗</span><h3>Make the sale.<br>Keep building.</h3><p>Earn commissions on qualifying initial sales and eligible reorders from accounts you bring into the network. Keep serving retailers and introducing new products as brands become available.</p></div><span class="hc-journey-card-footer">BUILD ACCOUNTS THAT CAN KEEP GROWING.</span></div>
       <div class="hc-journey-card-art hc-journey-card-art--photo hc-journey-card-art--commissions"><img src="{{ '/assets/images/highline-connect-recurring-reorder-commissions.webp' | relative_url }}" alt="Highline Connect branded phone displaying an illustrative growth chart and recurring retailer reorder activity beside a coffee mug in a convenience store" loading="lazy"><span class="hc-journey-big-number" aria-hidden="true">04</span><div class="hc-journey-art-caption">YOUR FIRST SALE IS<br>JUST THE BEGINNING.</div></div>
     </article>
   </div>
@@ -112,6 +112,5 @@ description: Explore independent, commission-based retail sales opportunities wi
     <div class="hc-final-highlights" aria-label="Opportunity highlights"><span>Independent opportunity</span><span>Commission-based</span><span>Resources to get started</span></div>
     <a class="hc-final-cta" href="{{ '/apply' | relative_url }}"><span>APPLY NOW. START BUILDING.</span><span class="hc-final-cta-arrow" aria-hidden="true">↗</span></a>
     <p class="hc-final-reassurance">Take the first step. Apply to become a Highline Connect representative.</p>
-    <p class="hc-final-fineprint">1099 independent contractor opportunity. No guaranteed earnings. Application does not guarantee approval.</p>
   </div>
 </section>
