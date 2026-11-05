@@ -299,3 +299,6 @@
 /* Hero accent refinement: orange eyebrow and opportunity underline */
 .hc-hero .hc-eyebrow{color:#d76a24}
 .hc-hero .hc-secondary-link{border-bottom-color:#d76a24}
+
+/* Video introduction: orange section kicker */
+.hc-video-section .hc-kicker{color:#d76a24}
