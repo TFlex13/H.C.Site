@@ -269,3 +269,21 @@
 .hc-apply-form-shell iframe{display:block;width:100%;height:3900px;border:0;background:#f5f3ee}
 @media(max-width:950px){.hc-apply-section-inner{grid-template-columns:1fr;gap:35px}.hc-apply-intro{position:static}.hc-apply-expectations{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.hc-apply-expectations>div{grid-template-columns:1fr;gap:6px}.hc-apply-form-shell{max-width:780px;width:100%;margin:auto}}
 @media(max-width:650px){.hc-apply-hero-inner{padding:72px 0 80px}.hc-apply-hero h1{font-size:clamp(2.6rem,10vw,4rem)}.hc-apply-section{padding:55px 0}.hc-apply-expectations{display:block}.hc-apply-expectations>div{grid-template-columns:36px 1fr}.hc-apply-form-heading{font-size:.7rem;padding:15px}.hc-apply-form-secure{display:none}.hc-apply-form-shell{border-radius:10px}}
+
+
+/* Continuous brand marquee between journey and training */
+.hc-brands{overflow:hidden;background:#f5f3ee;padding:clamp(70px,7vw,110px) 0 clamp(78px,8vw,115px);color:#111c2b}
+.hc-brands-heading{text-align:center;margin-bottom:42px}
+.hc-brands-eyebrow{font-size:.75rem;font-weight:850;letter-spacing:.2em;color:#a77726;margin:0 0 13px}
+.hc-brands-heading h2{font-size:clamp(2.4rem,4.3vw,4.8rem);font-weight:900;letter-spacing:-.055em;margin:0 0 14px;line-height:1.12}
+.hc-brands-heading h2 span{color:#b68a42}
+.hc-brands-heading>p:last-child{font-size:1.1rem;color:#586575;max-width:650px;margin:0 auto}
+.hc-brands-marquee{width:100%;overflow:hidden;position:relative;padding:16px 0;mask-image:linear-gradient(to right,transparent,#000 6%,#000 94%,transparent)}
+.hc-brands-track{display:flex;width:max-content;animation:hc-brand-scroll 46s linear infinite;will-change:transform}
+.hc-brands-group{display:flex;align-items:center;flex-shrink:0;gap:0}
+.hc-brand-logo{width:clamp(180px,16vw,260px);height:125px;display:flex;align-items:center;justify-content:center;padding:20px 28px;flex-shrink:0}
+.hc-brand-logo img{display:block;max-width:100%;max-height:85px;width:auto;height:auto;object-fit:contain;filter:grayscale(.15);transition:filter .25s,transform .25s}
+.hc-brand-logo img:hover{filter:none;transform:scale(1.07)}
+@keyframes hc-brand-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(max-width:650px){.hc-brands{padding:65px 0 75px}.hc-brands-heading{margin-bottom:25px}.hc-brands-heading>p:last-child{font-size:1rem}.hc-brand-logo{width:175px;height:105px;padding:16px 24px}.hc-brand-logo img{max-height:72px}.hc-brands-track{animation-duration:38s}}
+@media(prefers-reduced-motion:reduce){.hc-brands-track{animation:none}.hc-brands-marquee{overflow-x:auto;mask-image:none}}
