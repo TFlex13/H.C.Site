@@ -287,3 +287,11 @@
 @keyframes hc-brand-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @media(max-width:650px){.hc-brands{padding:65px 0 75px}.hc-brands-heading{margin-bottom:25px}.hc-brands-heading>p:last-child{font-size:1rem}.hc-brand-logo{width:175px;height:105px;padding:16px 24px}.hc-brand-logo img{max-height:72px}.hc-brands-track{animation-duration:38s}}
 @media(prefers-reduced-motion:reduce){.hc-brands-track{animation:none}.hc-brands-marquee{overflow-x:auto;mask-image:none}}
+
+
+/* Subtle orbit motion behind the final application CTA */
+.hc-final-orbit--two{border:2px dashed rgba(228,184,95,.34);animation:hc-orbit-clockwise 85s linear infinite}
+.hc-final-orbit--three{width:min(610px,63vw);border:1px dashed rgba(228,184,95,.24);animation:hc-orbit-clockwise 125s linear infinite reverse}
+@keyframes hc-orbit-clockwise{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
+@media(max-width:650px){.hc-final-orbit--three{width:78vw}}
+@media(prefers-reduced-motion:reduce){.hc-final-orbit--two,.hc-final-orbit--three{animation:none}}
