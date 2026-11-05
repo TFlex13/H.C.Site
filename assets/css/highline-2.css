@@ -321,3 +321,6 @@
 
 /* Larger trend arrows in the three advantage cards */
 .hc-strip-arrow .hc-trend-arrow{width:2.6em;height:2.6em}
+
+/* Journey heading: blue directional emphasis */
+.hc-journey-heading h2 span{color:#0099c6}
