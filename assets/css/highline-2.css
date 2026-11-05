@@ -295,3 +295,7 @@
 @keyframes hc-orbit-clockwise{from{transform:translate(-50%,-50%) rotate(0deg)}to{transform:translate(-50%,-50%) rotate(360deg)}}
 @media(max-width:650px){.hc-final-orbit--three{width:78vw}}
 @media(prefers-reduced-motion:reduce){.hc-final-orbit--two,.hc-final-orbit--three{animation:none}}
+
+/* Hero accent refinement: orange eyebrow and opportunity underline */
+.hc-hero .hc-eyebrow{color:#d76a24}
+.hc-hero .hc-secondary-link{border-bottom-color:#d76a24}
