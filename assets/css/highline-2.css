@@ -330,3 +330,8 @@
 .hc-journey-card--one .hc-journey-symbol{color:#d76a24}
 .hc-journey-card--one .hc-journey-link{color:#d76a24;border-bottom-color:#d76a24}
 .hc-journey-card--one .hc-journey-link .hc-trend-arrow{width:1.2em;height:1.2em}
+
+/* Second journey tile: light blue background with burnt orange details */
+.hc-journey-card--two{background:#a9ddec;color:#111923}
+.hc-journey-card--two .hc-journey-meta span:first-child,.hc-journey-card--two .hc-journey-meta span:last-child,.hc-journey-card--two .hc-journey-symbol{color:#d76a24}
+.hc-journey-card--two .hc-journey-symbol .hc-trend-arrow{width:1em;height:1em}
