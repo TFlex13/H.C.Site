@@ -37,13 +37,13 @@ description: Explore independent, commission-based retail sales opportunities wi
       <p class="hc-opportunity-label"><span class="hc-live-dot"></span> A DIFFERENT WAY TO SELL</p>
       <h2 id="opportunity-title">Your city.<br>Your hustle.<br><em>Your upside.</em></h2>
       <p class="hc-opportunity-intro">You already know the stores. Now imagine walking in with products worth talking about, building your own book of business, and earning commission when qualifying orders come in.</p>
-      <a class="hc-opportunity-cta" href="{{ '/apply' | relative_url }}">See if you're a fit <span aria-hidden="true">↗</span></a>
+      <a class="hc-opportunity-cta" href="{{ '/apply' | relative_url }}">See if you're a fit <span aria-hidden="true"><svg class="hc-trend-arrow" viewBox="0 -0.5 25 25" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M15.5 8.5h4v4m0-4-7 7-3-3-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>
       
     </div>
     <div class="hc-opportunity-visual">
       <img src="{{ '/assets/images/Highline_connect_CS_Store_handshake.jpg' | relative_url }}" alt="Sales representative connecting with a retailer inside a convenience store" loading="lazy">
       <div class="hc-visual-scrim"></div>
-      <div class="hc-visual-stamp" aria-hidden="true">ON THE<br>GROUND<span>↗</span></div>
+      <div class="hc-visual-stamp" aria-hidden="true">ON THE<br>GROUND<span><svg class="hc-trend-arrow" viewBox="0 -0.5 25 25" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M15.5 8.5h4v4m0-4-7 7-3-3-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
       <div class="hc-visual-bottom">
         <span class="hc-visual-overline">FROM FIRST INTRODUCTION TO THE NEXT ORDER</span>
         <strong>Make every visit count.</strong>
@@ -51,9 +51,9 @@ description: Explore independent, commission-based retail sales opportunities wi
     </div>
   </div>
   <div class="hc-opportunity-strip" aria-label="What makes this opportunity different">
-    <div class="hc-strip-item"><span class="hc-strip-number">01</span><div><strong>Set your own rhythm.</strong><p>Plan your store visits around your schedule.</p></div><span class="hc-strip-arrow" aria-hidden="true">↗</span></div>
-    <div class="hc-strip-item"><span class="hc-strip-number">02</span><div><strong>Build a book of business.</strong><p>Bring retailers on board and earn on qualifying reorders.</p></div><span class="hc-strip-arrow" aria-hidden="true">↗</span></div>
-    <div class="hc-strip-item"><span class="hc-strip-number">03</span><div><strong>Bring more to the table.</strong><p>Introduce additional brands as the lineup grows.</p></div><span class="hc-strip-arrow" aria-hidden="true">↗</span></div>
+    <div class="hc-strip-item"><span class="hc-strip-number">01</span><div><strong>Set your own rhythm.</strong><p>Plan your store visits around your schedule.</p></div><span class="hc-strip-arrow" aria-hidden="true"><svg class="hc-trend-arrow" viewBox="0 -0.5 25 25" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M15.5 8.5h4v4m0-4-7 7-3-3-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+    <div class="hc-strip-item"><span class="hc-strip-number">02</span><div><strong>Build a book of business.</strong><p>Bring retailers on board and earn on qualifying reorders.</p></div><span class="hc-strip-arrow" aria-hidden="true"><svg class="hc-trend-arrow" viewBox="0 -0.5 25 25" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M15.5 8.5h4v4m0-4-7 7-3-3-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
+    <div class="hc-strip-item"><span class="hc-strip-number">03</span><div><strong>Bring more to the table.</strong><p>Introduce additional brands as the lineup grows.</p></div><span class="hc-strip-arrow" aria-hidden="true"><svg class="hc-trend-arrow" viewBox="0 -0.5 25 25" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M15.5 8.5h4v4m0-4-7 7-3-3-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>
   </div>
 </section>
 
