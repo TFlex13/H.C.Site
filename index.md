@@ -102,11 +102,16 @@ description: Explore independent, commission-based retail sales opportunities wi
   <div class="hc-training-disclosure-wrap"><div class="hc-training-disclosure"><p><strong>Important:</strong> This is a 1099 independent contractor opportunity, not salaried employment. Compensation is 100% commission-based, with no guaranteed earnings. Sample kits may require a purchase and are used as sales tools. Results depend on effort, territory, and performance.</p></div></div>
 </section>
 
-<section class="hc-section hc-final">
-  <div class="hc-container">
-    <p class="hc-kicker">Ready for what's next?</p>
-    <h2 class="hc-heading">Build something on your own terms.</h2>
-    <p class="hc-lead">Bring innovative brands to local retailers and develop relationships that can grow over time.</p>
-    <a class="hc-button" href="{{ '/apply' | relative_url }}">Apply to Highline Connect</a>
+<section class="hc-final hc-final--spotlight" aria-labelledby="hc-final-title">
+  <div class="hc-final-orbit hc-final-orbit--one" aria-hidden="true"></div>
+  <div class="hc-final-orbit hc-final-orbit--two" aria-hidden="true"></div>
+  <div class="hc-container hc-final-inner">
+    <p class="hc-final-kicker"><span class="hc-final-kicker-line" aria-hidden="true"></span> THE NEXT CHAPTER IS YOURS <span class="hc-final-kicker-line" aria-hidden="true"></span></p>
+    <h2 id="hc-final-title">YOUR NEXT MOVE<br><span>STARTS HERE.</span></h2>
+    <p class="hc-final-description">Your territory. Your schedule. Your opportunity to build lasting retailer relationships and earn commissions on qualifying sales and eligible reorders.</p>
+    <div class="hc-final-highlights" aria-label="Opportunity highlights"><span>Independent opportunity</span><span>Commission-based</span><span>Resources to get started</span></div>
+    <a class="hc-final-cta" href="{{ '/apply' | relative_url }}"><span>APPLY NOW. START BUILDING.</span><span class="hc-final-cta-arrow" aria-hidden="true">↗</span></a>
+    <p class="hc-final-reassurance">Take the first step. Apply to become a Highline Connect representative.</p>
+    <p class="hc-final-fineprint">1099 independent contractor opportunity. No guaranteed earnings. Application does not guarantee approval.</p>
   </div>
 </section>
