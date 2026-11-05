@@ -141,6 +141,7 @@ description: Explore independent, commission-based retail sales opportunities wi
 <section class="hc-final hc-final--spotlight" aria-labelledby="hc-final-title">
   <div class="hc-final-orbit hc-final-orbit--one" aria-hidden="true"></div>
   <div class="hc-final-orbit hc-final-orbit--two" aria-hidden="true"></div>
+  <div class="hc-final-orbit hc-final-orbit--three" aria-hidden="true"></div>
   <div class="hc-container hc-final-inner">
     <p class="hc-final-kicker"><span class="hc-final-kicker-line" aria-hidden="true"></span> THE NEXT CHAPTER IS YOURS <span class="hc-final-kicker-line" aria-hidden="true"></span></p>
     <h2 id="hc-final-title">YOUR NEXT MOVE<br><span>STARTS HERE.</span></h2>
