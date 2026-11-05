@@ -230,3 +230,11 @@
 .hc-final-fineprint{color:#aebdce;margin:15px auto 0;font-size:.78rem;max-width:680px}
 @media(max-width:650px){.hc-final--spotlight{padding:90px 0 95px}.hc-final--spotlight h2{font-size:clamp(2.9rem,11vw,5rem)}.hc-final-kicker{letter-spacing:.13em;gap:9px}.hc-final-description{font-size:1.05rem}.hc-final-highlights{flex-direction:column;align-items:center;gap:12px;margin-bottom:35px}.hc-final-cta{width:100%;gap:14px;min-height:76px;padding:14px 15px 14px 20px;justify-content:space-between;font-size:.97rem}.hc-final-cta-arrow{flex-shrink:0}.hc-final-orbit{width:145vw}.hc-final-orbit--two{width:100vw}}
 @media(prefers-reduced-motion:reduce){.hc-final-cta,.hc-final-cta-arrow{transition:none}}
+
+
+/* Footer contact readability and accessible hover/focus treatment */
+.site-footer{font-size:.94rem}
+.site-footer a{transition:color .2s ease,text-decoration-color .2s ease;text-underline-offset:3px}
+.site-footer a:hover,.site-footer a:focus-visible{color:#e4b85f;text-decoration-color:#e4b85f}
+.site-footer a:focus-visible{outline:2px solid #e4b85f;outline-offset:4px;border-radius:2px}
+@media(max-width:650px){.site-footer{font-size:.94rem;line-height:1.8}.footer-right{row-gap:10px}}
