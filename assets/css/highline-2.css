@@ -238,3 +238,34 @@
 .site-footer a:hover,.site-footer a:focus-visible{color:#e4b85f;text-decoration-color:#e4b85f}
 .site-footer a:focus-visible{outline:2px solid #e4b85f;outline-offset:4px;border-radius:2px}
 @media(max-width:650px){.site-footer{font-size:.94rem;line-height:1.8}.footer-right{row-gap:10px}}
+
+
+/* Application landing page, matching Highline 2.0 */
+.hc-apply-hero{position:relative;isolation:isolate;overflow:hidden;color:#fff;background:radial-gradient(ellipse at 80% 35%,rgba(31,75,111,.6),transparent 60%),linear-gradient(125deg,#07111f,#10273e 62%,#081320);border-bottom:1px solid rgba(228,184,95,.25)}
+.hc-apply-hero:before{content:"";position:absolute;pointer-events:none;z-index:-1;right:-15%;top:-75%;width:75vw;aspect-ratio:1;border-radius:50%;border:1px solid rgba(228,184,95,.17);box-shadow:0 0 0 115px rgba(228,184,95,.035),0 0 0 230px rgba(228,184,95,.025)}
+.hc-apply-hero-inner{padding:clamp(90px,10vw,145px) 0 clamp(90px,10vw,135px)}
+.hc-apply-eyebrow{font-size:.76rem;letter-spacing:.2em;font-weight:850;color:#e4b85f;text-transform:uppercase;margin:0 0 22px}
+.hc-apply-hero h1{color:#fff;font-size:clamp(3rem,6vw,6.6rem);font-weight:900;letter-spacing:-.065em;line-height:1.05;max-width:1100px;margin:0 0 27px}
+.hc-apply-hero h1 span{color:#e4b85f}
+.hc-apply-hero-lead{color:#d4dfeb;font-size:clamp(1.08rem,1.6vw,1.3rem);line-height:1.65;max-width:760px;margin:0 0 36px}
+.hc-apply-jump{display:inline-flex;align-items:center;gap:26px;background:#e4b85f;color:#081320;text-decoration:none;padding:18px 24px;border-radius:7px;font-weight:850;letter-spacing:.04em;transition:background .2s,transform .2s}
+.hc-apply-jump:hover,.hc-apply-jump:focus-visible{background:#f5d58d;transform:translateY(-3px)}
+.hc-apply-jump span{font-size:1.5rem;line-height:1}
+.hc-apply-section{background:#f5f3ee;padding:clamp(60px,8vw,115px) 0}
+.hc-apply-section-inner{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);gap:clamp(36px,5vw,90px);align-items:start}
+.hc-apply-intro{position:sticky;top:35px;padding-top:16px}
+.hc-apply-intro h2{font-size:clamp(2.4rem,3.6vw,4rem);font-weight:850;line-height:1.12;margin:0 0 22px;color:#111c2b}
+.hc-apply-intro>p:not(.hc-apply-eyebrow){color:#566373;font-size:1.1rem;line-height:1.75;max-width:480px}
+.hc-apply-expectations{margin-top:40px;border-top:1px solid #d9d7d1}
+.hc-apply-expectations>div{display:grid;grid-template-columns:40px 1fr;gap:18px;padding:24px 0;border-bottom:1px solid #d9d7d1}
+.hc-apply-expectations>div>span{color:#a77a2e;font-weight:900;font-size:1.25rem}
+.hc-apply-expectations p{margin:0}
+.hc-apply-expectations strong{display:block;color:#142438;font-size:1.08rem;margin-bottom:5px}
+.hc-apply-expectations small{display:block;color:#657080;font-size:.92rem;line-height:1.55}
+.hc-apply-form-shell{background:#fff;border:1px solid #dfe2e5;border-radius:15px;box-shadow:0 28px 75px rgba(11,25,41,.13);overflow:hidden;min-width:0}
+.hc-apply-form-heading{display:flex;align-items:center;gap:12px;background:#0d2035;color:#fff;min-height:74px;padding:16px 22px;font-size:.77rem;font-weight:850;letter-spacing:.09em}
+.hc-apply-form-indicator{width:9px;height:9px;background:#e4b85f;border-radius:50%;box-shadow:0 0 14px rgba(228,184,95,.6);flex-shrink:0}
+.hc-apply-form-secure{margin-left:auto;font-weight:500;color:#bccbd9;letter-spacing:0;text-transform:none;white-space:nowrap}
+.hc-apply-form-shell iframe{display:block;width:100%;height:3900px;border:0;background:#f5f3ee}
+@media(max-width:950px){.hc-apply-section-inner{grid-template-columns:1fr;gap:35px}.hc-apply-intro{position:static}.hc-apply-expectations{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.hc-apply-expectations>div{grid-template-columns:1fr;gap:6px}.hc-apply-form-shell{max-width:780px;width:100%;margin:auto}}
+@media(max-width:650px){.hc-apply-hero-inner{padding:72px 0 80px}.hc-apply-hero h1{font-size:clamp(2.6rem,10vw,4rem)}.hc-apply-section{padding:55px 0}.hc-apply-expectations{display:block}.hc-apply-expectations>div{grid-template-columns:36px 1fr}.hc-apply-form-heading{font-size:.7rem;padding:15px}.hc-apply-form-secure{display:none}.hc-apply-form-shell{border-radius:10px}}
