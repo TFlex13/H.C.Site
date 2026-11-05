@@ -82,6 +82,42 @@ description: Explore independent, commission-based retail sales opportunities wi
   </div>
 </section>
 
+<section class="hc-brands" aria-labelledby="hc-brands-title">
+  <div class="hc-container hc-brands-heading">
+    <p class="hc-brands-eyebrow">MORE BRANDS. MORE CONVERSATIONS.</p>
+    <h2 id="hc-brands-title">One network. <span>More to offer.</span></h2>
+    <p>Build retailer relationships that can grow as new brands and products become available.</p>
+  </div>
+  <div class="hc-brands-marquee" aria-label="Brands featured in the Highline Connect network">
+    <div class="hc-brands-track">
+      <div class="hc-brands-group">
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/Archer_logo.png' | relative_url }}" alt="Archer" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/C2O_Coconut_water_logo.png' | relative_url }}" alt="C2O" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/Ghost-Logo.png' | relative_url }}" alt="Ghost" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/lenny-larrys-logo-black.png' | relative_url }}" alt="Lenny and Larry's" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/Liquid-Death-Logo.png' | relative_url }}" alt="Liquid Death" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/Nantucket_crisps_logo.png' | relative_url }}" alt="Nantucket Crisps" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/OLIPOP_logo.png' | relative_url }}" alt="OLIPOP" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/RedHawk_Logo.png' | relative_url }}" alt="RedHawk" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/Snak_Club_Logo.png' | relative_url }}" alt="Snak Club" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/suorin-logo.png' | relative_url }}" alt="Suorin" loading="lazy" decoding="async"></div>
+      </div>
+      <div class="hc-brands-group" aria-hidden="true">
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/Archer_logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/C2O_Coconut_water_logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/Ghost-Logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/lenny-larrys-logo-black.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/Liquid-Death-Logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/Nantucket_crisps_logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/OLIPOP_logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/RedHawk_Logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/Snak_Club_Logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/suorin-logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="hc-training" aria-labelledby="hc-training-title">
   <div class="hc-training-layout">
     <div class="hc-training-photo">
