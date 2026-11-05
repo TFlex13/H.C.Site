@@ -302,3 +302,12 @@
 
 /* Video introduction: orange section kicker */
 .hc-video-section .hc-kicker{color:#d76a24}
+
+/* Independent advantage section: blue primary, orange supporting accents */
+.hc-opportunity-story h2 em{color:#0099c6}
+.hc-opportunity-topline{background:#d76a24}
+.hc-visual-stamp,.hc-opportunity-visual:hover .hc-visual-stamp{background:#d76a24}
+.hc-opportunity-cta{background:#0099c6;color:#071725}
+.hc-opportunity-cta:hover,.hc-opportunity-cta:focus-visible{background:#26b5dc;color:#071725}
+.hc-strip-number,.hc-strip-arrow,.hc-strip-item:hover .hc-strip-arrow{color:#d76a24}
+.hc-visual-overline{color:#d76a24}
