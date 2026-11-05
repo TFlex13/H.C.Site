@@ -311,3 +311,10 @@
 .hc-opportunity-cta:hover,.hc-opportunity-cta:focus-visible{background:#26b5dc;color:#071725}
 .hc-strip-number,.hc-strip-arrow,.hc-strip-item:hover .hc-strip-arrow{color:#d76a24}
 .hc-visual-overline{color:#d76a24}
+
+/* Supplied trend-up SVG, sized for the five Independent Advantage arrows */
+.hc-trend-arrow{display:block;width:1em;height:1em;flex-shrink:0}
+.hc-opportunity-cta>span,.hc-visual-stamp>span,.hc-strip-arrow{display:inline-flex;align-items:center;justify-content:center}
+.hc-opportunity-cta .hc-trend-arrow{width:1.35em;height:1.35em}
+.hc-visual-stamp .hc-trend-arrow{width:1em;height:1em}
+.hc-strip-arrow .hc-trend-arrow{width:1.1em;height:1.1em}
