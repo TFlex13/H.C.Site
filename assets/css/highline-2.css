@@ -375,3 +375,9 @@
 
 /* Brands headline: established Highline blue */
 .hc-brands-heading h2 span{color:#0099c6}
+
+/* Training: orange accents, established blue heading emphasis */
+.hc-training-eyebrow{color:#d76a24}
+.hc-training-content h2 em{color:#0099c6}
+.hc-training-resource-icon{color:#d76a24;border-color:#d76a24}
+.hc-training-disclosure{border-left-color:#d76a24}
