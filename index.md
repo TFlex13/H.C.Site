@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Independent Sales Representative Opportunities
-description: Explore independent, commission-based retail sales opportunities with Highline Connect. Build local store relationships and earn on qualifying reorders.
+title: Independent Sales Representative Opportunities | Flexible 1099 Sales
+description: Explore nationwide 1099 independent sales opportunities with no quotas or minimum hours. Earn commissions on qualifying retailer orders and eligible reorders.
 ---
 
 <section class="hc-hero" aria-labelledby="hero-title">
@@ -79,6 +79,32 @@ description: Explore independent, commission-based retail sales opportunities wi
       <div class="hc-journey-card-copy"><div class="hc-journey-meta"><span>04 / 04</span><span>THE LONG GAME</span></div><div><span class="hc-journey-symbol" aria-hidden="true"><svg class="hc-trend-arrow" viewBox="0 -0.5 25 25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.5 8.5h4v4m0-4-7 7-3-3-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><h3>Make the sale.<br>Keep building.</h3><p>Earn commissions on qualifying initial sales and eligible reorders from accounts you bring into the network. Keep serving retailers and introducing new products as brands become available.</p></div><span class="hc-journey-card-footer">BUILD ACCOUNTS THAT CAN KEEP GROWING.</span></div>
       <div class="hc-journey-card-art hc-journey-card-art--photo hc-journey-card-art--commissions"><img src="{{ '/assets/images/highline-connect-recurring-reorder-commissions.webp' | relative_url }}" alt="Highline Connect branded phone displaying an illustrative growth chart and recurring retailer reorder activity beside a coffee mug in a convenience store" loading="lazy"><span class="hc-journey-big-number" aria-hidden="true">04</span><div class="hc-journey-art-caption">YOUR FIRST SALE IS<br>JUST THE BEGINNING.</div></div>
     </article>
+  </div>
+</section>
+
+<section class="seo-home seo-home--cinematic" aria-labelledby="seo-home-title">
+  <div class="seo-home-ambient" aria-hidden="true"></div>
+  <div class="seo-home-shell">
+    <div class="seo-home-intro">
+      <p class="seo-kicker"><span class="seo-home-dash" aria-hidden="true"></span> NATIONWIDE INDEPENDENT SALES</p>
+      <h2 id="seo-home-title">YOUR CITY.<br><span class="seo-home-orange">YOUR RULES.</span><br><span class="seo-home-outline">YOUR MOVE.</span></h2>
+      <p class="seo-home-deck">No quotas. No minimum hours. No required shifts. Represent participating brands to local retailers, on a schedule that's entirely yours.</p>
+      <div class="seo-home-facts" aria-label="Opportunity highlights">
+        <span><strong>50</strong> STATES</span>
+        <span><strong>0</strong> QUOTAS</span>
+        <span><strong>YOU</strong> SET THE PACE</span>
+      </div>
+    </div>
+    <div class="seo-home-explore" aria-labelledby="seo-explore-title">
+      <div class="seo-home-explore-heading"><p class="seo-kicker">ONE NETWORK. DIFFERENT PATHS.</p><h3 id="seo-explore-title">Where do you fit in?</h3><p>Independent sales opportunities for people who prefer to make their own schedule.</p></div>
+      <div class="seo-home-routes">
+        <a href="{{ '/independent-sales-opportunities.html' | relative_url }}" class="seo-home-route"><span class="seo-home-route-num">01</span><span class="seo-home-route-copy"><strong>Independent sales</strong><span>Explore nationwide 1099 commission-only opportunities and how the model works.</span></span><span class="seo-home-route-arrow" aria-hidden="true"><svg class="hc-trend-arrow" viewBox="0 -0.5 25 25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.5 8.5h4v4m0-4-7 7-3-3-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>
+        <a href="{{ '/side-hustle-for-drivers.html' | relative_url }}" class="seo-home-route"><span class="seo-home-route-num">02</span><span class="seo-home-route-copy"><strong>Already on the road?</strong><span>Rideshare and delivery drivers: put your knowledge of local businesses to work.</span></span><span class="seo-home-route-arrow" aria-hidden="true"><svg class="hc-trend-arrow" viewBox="0 -0.5 25 25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.5 8.5h4v4m0-4-7 7-3-3-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>
+        <a href="{{ '/sales-reps-add-product-lines.html' | relative_url }}" class="seo-home-route"><span class="seo-home-route-num">03</span><span class="seo-home-route-copy"><strong>Already in sales?</strong><span>Discover additional product lines for the retailers you already know.</span></span><span class="seo-home-route-arrow" aria-hidden="true"><svg class="hc-trend-arrow" viewBox="0 -0.5 25 25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.5 8.5h4v4m0-4-7 7-3-3-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>
+        <a href="{{ '/flexible-sales-for-students.html' | relative_url }}" class="seo-home-route"><span class="seo-home-route-num">04</span><span class="seo-home-route-copy"><strong>Balancing classes?</strong><span>Build real-world sales experience around your college schedule.</span></span><span class="seo-home-route-arrow" aria-hidden="true"><svg class="hc-trend-arrow" viewBox="0 -0.5 25 25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15.5 8.5h4v4m0-4-7 7-3-3-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>
+      </div>
+      <p class="seo-home-earnings">Earn commissions on qualifying retailer sales, with additional commissions possible on eligible reorders. No earnings are guaranteed.</p>
+    </div>
   </div>
 </section>
 
