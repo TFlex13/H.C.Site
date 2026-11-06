@@ -348,3 +348,27 @@
 /* Final journey tile: orange label and trend arrow */
 .hc-journey-card--four .hc-journey-meta span:last-child,.hc-journey-card--four .hc-journey-symbol{color:#d76a24}
 .hc-journey-card--four .hc-journey-symbol .hc-trend-arrow{width:1em;height:1em}
+
+/* Match all journey image captions to slide 01 typography */
+.hc-journey-card-art--store-visit .hc-journey-photo-caption,
+.hc-journey-card-art--ordering .hc-journey-photo-caption,
+.hc-journey-card-art--commissions .hc-journey-art-caption {
+  position:absolute;
+  z-index:2;
+  bottom:8%;
+  left:8%;
+  right:5%;
+  color:#fff;
+  font-size:clamp(2rem,4.4vw,5.8rem);
+  line-height:1.02;
+  font-weight:900;
+  letter-spacing:-.05em;
+  text-shadow:0 3px 16px #0009;
+}
+@media(max-width:600px){
+  .hc-journey-card-art--store-visit .hc-journey-photo-caption,
+  .hc-journey-card-art--ordering .hc-journey-photo-caption,
+  .hc-journey-card-art--commissions .hc-journey-art-caption {
+    font-size:clamp(2rem,9vw,3.2rem);
+  }
+}
