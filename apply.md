@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Apply to Highline Connect
-description: Apply to become an independent Highline Connect field sales representative. Tell us about your territory and experience.
+title: Apply for 1099 Independent Sales Opportunities | Highline Connect
+description: Apply for nationwide commission-only independent sales opportunities. No minimum hours or quotas. Brand requirements vary.
 cinematic_page: true
 ---
 
@@ -13,6 +13,8 @@ cinematic_page: true
     <a class="hc-apply-jump" href="#application-form">START YOUR APPLICATION <span aria-hidden="true">↓</span></a>
   </div>
 </section>
+
+<section class="seo-apply-info"><div class="hc-container"><h2>Know the opportunity before you apply</h2><p>Highline Connect recruits independent 1099 sales contractors nationwide. There are no required shifts, minimum weekly hours, or sales quotas. Compensation is commission-only, with no base salary or guaranteed earnings. Some participating brands require representatives to purchase a sample or demonstration kit, while others do not. Brand availability and territory approval vary.</p><p>Want the full picture? <a href="{{ '/independent-sales-opportunities' | relative_url }}">Read how independent sales opportunities work</a>.</p></div></section>
 
 <section class="hc-apply-section" id="application-form" aria-labelledby="hc-apply-form-title">
   <div class="hc-container hc-apply-section-inner">
