@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Independent Sales Representative Opportunities
-description: Explore independent, commission-based retail sales opportunities with Highline Connect. Build local store relationships and earn on qualifying reorders.
+title: Independent Sales Representative Opportunities | Flexible 1099 Sales
+description: Explore nationwide 1099 independent sales opportunities with no quotas or minimum hours. Earn commissions on qualifying retailer orders and eligible reorders.
 ---
 
 <section class="hc-hero" aria-labelledby="hero-title">
@@ -81,6 +81,8 @@ description: Explore independent, commission-based retail sales opportunities wi
     </article>
   </div>
 </section>
+
+<section class="seo-home" aria-labelledby="seo-home-title"><div class="hc-container"><p class="seo-kicker">NATIONWIDE INDEPENDENT SALES OPPORTUNITIES</p><h2 id="seo-home-title">No quotas. No minimum hours. <span>Work on your terms.</span></h2><p class="seo-lead">Highline Connect welcomes independent sales representatives across all 50 states. Whether you already drive around your city, have classes to work around, or represent other product lines, you can choose how much time to devote to introducing brands to local retailers.</p><div class="seo-home-grid"><article><h3>Independent contractor freedom</h3><p>There are no required shifts, weekly visit minimums, or sales quotas. Work an hour a week or pursue opportunities more often. You choose.</p></article><article><h3>Commission-only, clearly explained</h3><p>Represent participating brands and earn commissions on qualifying retailer orders and eligible reorders. No base salary or guaranteed income.</p></article><article><h3>Different brands, different requirements</h3><p>Some brands require purchasing a sample or demonstration kit; others do not. Requirements and available territories are explained during onboarding.</p></article></div><h3 class="seo-path-heading">Find the opportunity that fits your schedule</h3><div class="seo-path-grid"><a href="{{ '/independent-sales-opportunities' | relative_url }}"><strong>Explore independent sales</strong><span>Understand the 1099 opportunity and how it works.</span></a><a href="{{ '/side-hustle-for-drivers' | relative_url }}"><strong>Already driving around town?</strong><span>Learn how flexible local retail sales can fit around gig work.</span></a><a href="{{ '/sales-reps-add-product-lines' | relative_url }}"><strong>Already in outside sales?</strong><span>Explore adding participating product lines to your retail relationships.</span></a><a href="{{ '/flexible-sales-for-students' | relative_url }}"><strong>Balancing classes?</strong><span>See how independent field sales can fit an academic schedule.</span></a></div><p><a class="hc-button" href="{{ '/apply' | relative_url }}">Apply to become a representative</a></p><p class="seo-fineprint">Highline Connect opportunities are for independent 1099 contractors, not salaried employees. Compensation is commission-only, with no guaranteed earnings. Brand availability and eligibility vary; some brand programs require purchasing demonstration products or a sample kit. Details are provided before joining a specific brand program.</p></div></section>
 
 <section class="hc-brands" aria-labelledby="hc-brands-title">
   <div class="hc-container hc-brands-heading">
