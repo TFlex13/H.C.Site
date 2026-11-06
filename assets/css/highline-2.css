@@ -627,3 +627,28 @@
 @media(max-width:1050px){.seo-home-shell{grid-template-columns:1fr;gap:42px}.seo-home--cinematic{min-height:0;padding:85px 6vw}.seo-home--cinematic h2{font-size:clamp(3.7rem,10vw,6.6rem)}.seo-home-explore{max-width:850px;width:100%}}
 @media(max-width:600px){.seo-home--cinematic{padding:66px 22px}.seo-home--cinematic h2{font-size:clamp(3.05rem,12vw,4.4rem);margin:24px 0}.seo-home-facts span{padding:0 12px;font-size:.58rem}.seo-home-facts strong{font-size:1.6rem}.seo-home-explore{padding:26px 20px;border-radius:14px}.seo-home-route{grid-template-columns:24px minmax(0,1fr) 28px;gap:10px;padding:18px 0}.seo-home-route-arrow{width:28px;height:28px}.seo-home-route-copy>span{font-size:.82rem}}
 @media(prefers-reduced-motion:reduce){.seo-home-route,.seo-home-route-arrow{transition:none}}
+
+/* Kinetic recruiting section: the existing Highline trend-arrow SVG breaks the circle. */
+.seo-home-route-arrow{position:relative;width:42px;height:42px;overflow:visible;border-color:rgba(225,122,53,.52);background:rgba(225,122,53,.045);flex-shrink:0}
+.seo-home-route-arrow .hc-trend-arrow{position:absolute;left:50%;top:50%;width:49px;height:49px;max-width:none;transform:translate(-43%,-57%);overflow:visible;color:#f08c45;filter:drop-shadow(0 0 7px rgba(225,122,53,.23))}
+.seo-home-route{grid-template-columns:42px minmax(0,1fr) 48px}
+.seo-home-route:hover .seo-home-route-arrow,.seo-home-route:focus-visible .seo-home-route-arrow{transform:translate(3px,-3px)}
+.seo-home-route:hover .hc-trend-arrow,.seo-home-route:focus-visible .hc-trend-arrow{filter:drop-shadow(0 0 12px rgba(225,122,53,.7))}
+/* Autonomous atmosphere: ambient light, gently orbiting rings, and staggered link breathing. */
+.seo-home--cinematic{background-size:140% 140%;animation:seo-atmosphere 19s ease-in-out infinite alternate}
+.seo-home--cinematic:after{transform-origin:55% 55%;animation:seo-orbit 32s linear infinite}
+.seo-home-explore{animation:seo-panel-float 7s ease-in-out infinite}
+.seo-home-explore:before{background-size:200% 100%;animation:seo-edge-glide 8s ease-in-out infinite alternate}
+.seo-home-route-arrow{animation:seo-arrow-breathe 4.6s ease-in-out infinite}
+.seo-home-route:nth-child(2) .seo-home-route-arrow{animation-delay:-1.15s}
+.seo-home-route:nth-child(3) .seo-home-route-arrow{animation-delay:-2.3s}
+.seo-home-route:nth-child(4) .seo-home-route-arrow{animation-delay:-3.45s}
+.seo-home--cinematic .seo-home-outline{animation:seo-outline-glow 6s ease-in-out infinite}
+@keyframes seo-atmosphere{0%{background-position:0% 40%}100%{background-position:100% 60%}}
+@keyframes seo-orbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes seo-panel-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes seo-edge-glide{from{background-position:0% 50%}to{background-position:100% 50%}}
+@keyframes seo-arrow-breathe{0%,100%{border-color:rgba(225,122,53,.38);box-shadow:0 0 0 0 rgba(225,122,53,0)}50%{border-color:rgba(225,122,53,.82);box-shadow:0 0 0 7px rgba(225,122,53,.055)}}
+@keyframes seo-outline-glow{0%,100%{text-shadow:0 0 22px rgba(0,153,198,.06)}50%{text-shadow:0 0 38px rgba(0,153,198,.28)}}
+@media(max-width:600px){.seo-home-route{grid-template-columns:24px minmax(0,1fr) 42px}.seo-home-route-arrow{width:37px;height:37px}.seo-home-route-arrow .hc-trend-arrow{width:43px;height:43px}}
+@media(prefers-reduced-motion:reduce){.seo-home--cinematic,.seo-home--cinematic:after,.seo-home-explore,.seo-home-explore:before,.seo-home-route-arrow,.seo-home--cinematic .seo-home-outline{animation:none!important}}
