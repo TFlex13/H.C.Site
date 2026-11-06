@@ -344,3 +344,7 @@
 
 /* Third journey tile: orange step number, label and checkmark */
 .hc-journey-card--three .hc-journey-meta span:first-child,.hc-journey-card--three .hc-journey-meta span:last-child,.hc-journey-card--three .hc-journey-symbol{color:#d76a24}
+
+/* Final journey tile: orange label and trend arrow */
+.hc-journey-card--four .hc-journey-meta span:last-child,.hc-journey-card--four .hc-journey-symbol{color:#d76a24}
+.hc-journey-card--four .hc-journey-symbol .hc-trend-arrow{width:1em;height:1em}
