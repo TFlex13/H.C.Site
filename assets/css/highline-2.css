@@ -394,3 +394,8 @@
 .hc-final-cta{background:linear-gradient(110deg,#39d98a,#19b96b 60%,#109956);border-color:#76e9b0;color:#071d19;box-shadow:0 0 0 7px rgba(25,185,107,.12),0 18px 55px rgba(25,185,107,.27),0 20px 60px rgba(0,0,0,.35)}
 .hc-final-cta:hover,.hc-final-cta:focus-visible{box-shadow:0 0 0 10px rgba(25,185,107,.18),0 24px 75px rgba(25,185,107,.4),0 25px 60px rgba(0,0,0,.3)}
 .hc-final-cta-arrow{color:#39d98a}
+
+/* Application hero: brand blue heading and green application CTA */
+.hc-apply-hero h1 span{color:#009bc3}
+.hc-apply-jump{background:linear-gradient(110deg,#39d98a,#19b96b 60%,#109956);color:#071d19;box-shadow:0 8px 28px rgba(25,185,107,.18)}
+.hc-apply-jump:hover,.hc-apply-jump:focus-visible{background:linear-gradient(110deg,#54e8a0,#28cb7d 60%,#13a762)}
