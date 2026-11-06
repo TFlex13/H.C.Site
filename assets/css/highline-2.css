@@ -593,3 +593,37 @@
 
 /* Orange section eyebrow headings on all four national recruiting pages. */
 .seo-page .seo-kicker{color:#e88743}
+
+/* Full-bleed cinematic recruiting discovery section. No repeated CTA or legal block. */
+.seo-home--cinematic{position:relative;isolation:isolate;overflow:hidden;min-height:min(900px,100svh);display:flex;align-items:center;padding:clamp(76px,8vw,138px) clamp(24px,5vw,110px);background:radial-gradient(ellipse 65% 95% at 2% 65%,rgba(0,153,198,.18),transparent 72%),radial-gradient(ellipse 45% 70% at 95% 10%,rgba(215,106,36,.12),transparent 80%),linear-gradient(125deg,#060d18 0%,#0e2032 54%,#07111e 100%);color:#fff}
+.seo-home--cinematic:before{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;background:repeating-linear-gradient(90deg,transparent 0,transparent 179px,rgba(255,255,255,.035) 180px);mask-image:linear-gradient(90deg,transparent,#000 20%,#000 80%,transparent)}
+.seo-home--cinematic:after{content:"";position:absolute;left:-8vw;bottom:-32vw;width:75vw;height:75vw;border:1px solid rgba(0,153,198,.16);border-radius:50%;z-index:-1;pointer-events:none;box-shadow:0 0 0 11vw rgba(0,153,198,.025),0 0 0 22vw rgba(0,153,198,.018)}
+.seo-home-shell{width:100%;max-width:1650px;margin:auto;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);align-items:center;gap:clamp(48px,6vw,120px);position:relative;z-index:1}
+.seo-home--cinematic .seo-kicker{color:#ed8b48;font-size:clamp(.7rem,.85vw,.85rem);letter-spacing:.2em;font-weight:900}
+.seo-home-dash{display:inline-block;vertical-align:middle;width:30px;height:2px;background:#d76a24;margin-right:10px}
+.seo-home--cinematic h2{font-size:clamp(3.7rem,6.2vw,8.3rem);font-weight:950;letter-spacing:-.075em;line-height:.98;margin:28px 0 30px;max-width:none;color:#fff}
+.seo-home--cinematic h2 .seo-home-orange{color:#e17a35}
+.seo-home--cinematic h2 .seo-home-outline{color:transparent;-webkit-text-stroke:1.5px #59b8d8;text-shadow:0 0 35px rgba(0,153,198,.12)}
+.seo-home--cinematic .seo-home-deck{font-size:clamp(1.12rem,1.45vw,1.45rem);line-height:1.7;color:#d5e4ed;max-width:650px;margin-bottom:38px}
+.seo-home-facts{display:flex;align-items:center;flex-wrap:wrap;gap:0;border-top:1px solid rgba(255,255,255,.18);padding-top:25px}
+.seo-home-facts span{display:flex;flex-direction:column;gap:2px;padding:0 22px;border-right:1px solid rgba(255,255,255,.2);font-size:.69rem;letter-spacing:.15em;font-weight:800;color:#aabfce}
+.seo-home-facts span:first-child{padding-left:0}.seo-home-facts span:last-child{border-right:0}
+.seo-home-facts strong{font-size:clamp(1.65rem,2.4vw,2.5rem);line-height:1.15;letter-spacing:-.04em;color:#fff}
+.seo-home-explore{position:relative;padding:clamp(28px,3.5vw,56px);background:linear-gradient(140deg,rgba(22,47,65,.86),rgba(8,23,38,.83));border:1px solid rgba(106,185,216,.23);border-radius:22px;box-shadow:0 35px 90px rgba(0,0,0,.24);backdrop-filter:blur(12px)}
+.seo-home-explore:before{content:"";position:absolute;top:0;left:30px;right:30px;height:2px;background:linear-gradient(90deg,#d76a24,#009bc3,transparent)}
+.seo-home-explore-heading h3{font-size:clamp(1.9rem,2.65vw,3rem);letter-spacing:-.045em;margin:12px 0 10px;color:#fff}
+.seo-home-explore-heading>p:last-child{color:#c3d4e0;font-size:1rem;line-height:1.65;margin:0 0 22px}
+.seo-home-routes{border-top:1px solid rgba(255,255,255,.14)}
+.seo-home-route{display:grid;grid-template-columns:42px minmax(0,1fr) 36px;gap:18px;align-items:center;padding:20px 0;text-decoration:none;color:#fff;border-bottom:1px solid rgba(255,255,255,.14);transition:padding .25s,background .25s}
+.seo-home-route:hover,.seo-home-route:focus-visible{padding-left:12px;background:rgba(0,153,198,.07)}
+.seo-home-route:focus-visible{outline:2px solid #6bd5f1;outline-offset:3px}
+.seo-home-route-num{font-size:.82rem;letter-spacing:.08em;color:#e17a35;font-weight:900;align-self:start;padding-top:4px}
+.seo-home-route-copy{display:flex;flex-direction:column;gap:6px}
+.seo-home-route-copy strong{font-size:clamp(1.06rem,1.35vw,1.32rem);letter-spacing:-.02em;color:#fff}
+.seo-home-route-copy>span{color:#bbd0dc;font-size:.89rem;line-height:1.55}
+.seo-home-route-arrow{display:grid;place-items:center;width:34px;height:34px;border:1px solid rgba(225,122,53,.5);border-radius:50%;color:#e17a35;font-size:1.25rem;transition:transform .25s,background .25s}
+.seo-home-route:hover .seo-home-route-arrow,.seo-home-route:focus-visible .seo-home-route-arrow{transform:translate(3px,-3px);background:rgba(225,122,53,.15)}
+.seo-home--cinematic .seo-home-earnings{font-size:.8rem;line-height:1.6;color:#aebfcd;margin:22px 0 0}
+@media(max-width:1050px){.seo-home-shell{grid-template-columns:1fr;gap:42px}.seo-home--cinematic{min-height:0;padding:85px 6vw}.seo-home--cinematic h2{font-size:clamp(3.7rem,10vw,6.6rem)}.seo-home-explore{max-width:850px;width:100%}}
+@media(max-width:600px){.seo-home--cinematic{padding:66px 22px}.seo-home--cinematic h2{font-size:clamp(3.05rem,12vw,4.4rem);margin:24px 0}.seo-home-facts span{padding:0 12px;font-size:.58rem}.seo-home-facts strong{font-size:1.6rem}.seo-home-explore{padding:26px 20px;border-radius:14px}.seo-home-route{grid-template-columns:24px minmax(0,1fr) 28px;gap:10px;padding:18px 0}.seo-home-route-arrow{width:28px;height:28px}.seo-home-route-copy>span{font-size:.82rem}}
+@media(prefers-reduced-motion:reduce){.seo-home-route,.seo-home-route-arrow{transition:none}}
