@@ -381,3 +381,16 @@
 .hc-training-content h2 em{color:#0099c6}
 .hc-training-resource-icon{color:#d76a24;border-color:#d76a24}
 .hc-training-disclosure{border-left-color:#d76a24}
+
+/* Final CTA: orange details and contrasting green action */
+.hc-final-kicker{color:#d76a24}
+.hc-final-kicker-line{background:#d76a24}
+.hc-final--spotlight h2 span{color:#d76a24;background:none;-webkit-text-fill-color:currentColor}
+.hc-final-highlights span:before{background:#d76a24;box-shadow:0 0 12px rgba(215,106,36,.5)}
+.hc-final-orbit{border-color:rgba(215,106,36,.13)}
+.hc-final-orbit--two{border-color:rgba(215,106,36,.34)}
+.hc-final-orbit--three{border-color:rgba(215,106,36,.24)}
+.hc-final--spotlight:after{background:linear-gradient(90deg,transparent,rgba(215,106,36,.22),transparent)}
+.hc-final-cta{background:linear-gradient(110deg,#39d98a,#19b96b 60%,#109956);border-color:#76e9b0;color:#071d19;box-shadow:0 0 0 7px rgba(25,185,107,.12),0 18px 55px rgba(25,185,107,.27),0 20px 60px rgba(0,0,0,.35)}
+.hc-final-cta:hover,.hc-final-cta:focus-visible{box-shadow:0 0 0 10px rgba(25,185,107,.18),0 24px 75px rgba(25,185,107,.4),0 25px 60px rgba(0,0,0,.3)}
+.hc-final-cta-arrow{color:#39d98a}
