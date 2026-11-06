@@ -341,3 +341,6 @@
 
 /* Tile 2: use first tile's dark navy for metadata and SVG */
 .hc-journey-card--two .hc-journey-meta span:first-child,.hc-journey-card--two .hc-journey-meta span:last-child,.hc-journey-card--two .hc-journey-symbol{color:#101923}
+
+/* Third journey tile: orange step number, label and checkmark */
+.hc-journey-card--three .hc-journey-meta span:first-child,.hc-journey-card--three .hc-journey-meta span:last-child,.hc-journey-card--three .hc-journey-symbol{color:#d76a24}
