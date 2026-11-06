@@ -14,7 +14,7 @@ cinematic_page: true
   </div>
 </section>
 
-<section class="seo-apply-info"><div class="hc-container"><h2>Know the opportunity before you apply</h2><p>Highline Connect recruits independent 1099 sales contractors nationwide. There are no required shifts, minimum weekly hours, or sales quotas. Compensation is commission-only, with no base salary or guaranteed earnings. Some participating brands require representatives to purchase a sample or demonstration kit, while others do not. Brand availability and territory approval vary.</p><p>Want the full picture? <a href="{{ '/independent-sales-opportunities' | relative_url }}">Read how independent sales opportunities work</a>.</p></div></section>
+<section class="seo-apply-info"><div class="hc-container"><h2>Know the opportunity before you apply</h2><p>Highline Connect recruits independent 1099 sales contractors nationwide. There are no required shifts, minimum weekly hours, or sales quotas. Compensation is commission-only, with no base salary or guaranteed earnings. Some participating brands require representatives to purchase a sample or demonstration kit, while others do not. Brand availability and territory approval vary.</p><p>Want the full picture? <a href="{{ '/independent-sales-opportunities.html' | relative_url }}">Read how independent sales opportunities work</a>.</p></div></section>
 
 <section class="hc-apply-section" id="application-form" aria-labelledby="hc-apply-form-title">
   <div class="hc-container hc-apply-section-inner">
