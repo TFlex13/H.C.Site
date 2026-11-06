@@ -372,3 +372,6 @@
     font-size:clamp(2rem,9vw,3.2rem);
   }
 }
+
+/* Brands headline: established Highline blue */
+.hc-brands-heading h2 span{color:#0099c6}
