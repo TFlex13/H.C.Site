@@ -590,3 +590,6 @@
 .seo-page .hc-button,.seo-home .hc-button{background:linear-gradient(110deg,#39d98a,#19b96b 60%,#109956);border:1px solid #76e9b0;color:#071d19;font-weight:900;box-shadow:0 0 0 5px rgba(25,185,107,.10),0 12px 30px rgba(25,185,107,.20);transition:transform .25s ease,box-shadow .25s ease,filter .25s ease}
 .seo-page .hc-button:hover,.seo-page .hc-button:focus-visible,.seo-home .hc-button:hover,.seo-home .hc-button:focus-visible{background:linear-gradient(110deg,#39d98a,#19b96b 60%,#109956);transform:translateY(-3px);filter:brightness(1.08);box-shadow:0 0 0 7px rgba(25,185,107,.16),0 18px 42px rgba(25,185,107,.30)}
 .seo-page .hc-button:focus-visible,.seo-home .hc-button:focus-visible{outline:3px solid #fff;outline-offset:5px}
+
+/* Orange section eyebrow headings on all four national recruiting pages. */
+.seo-page .seo-kicker{color:#e88743}
