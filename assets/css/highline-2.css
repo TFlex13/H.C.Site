@@ -675,3 +675,10 @@
     padding-bottom: 26px;
   }
 }
+
+/* Keep each journey stage name flush right with a consistent inset from its image */
+.hc-journey-meta span:last-child {
+  margin-left: auto;
+  text-align: right;
+  padding-right: clamp(8px, 1.4vw, 24px);
+}
