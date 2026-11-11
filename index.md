@@ -11,7 +11,7 @@ description: Explore nationwide 1099 independent sales opportunities with no quo
     <p>Join a national network of independent sales representatives connecting innovative brands with convenience stores and specialty retailers.</p>
     <div class="hc-actions">
       <a class="hc-button" href="{{ '/apply' | relative_url }}">Apply to Join</a>
-      <a class="hc-secondary-link" href="#opportunity">Explore the opportunity ↓</a>
+      <a class="hc-secondary-link" href="#opportunity">Explore the opportunity</a>
     </div>
   </div>
 </section>
