@@ -148,6 +148,7 @@ description: Explore nationwide 1099 independent sales opportunities with no quo
         <div class="hc-brand-logo"><img src="{{ '/assets/images/chapstick_logo.webp' | relative_url }}" alt="ChapStick" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/zippo_logo.webp' | relative_url }}" alt="Zippo" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/zyn_logo.webp' | relative_url }}" alt="ZYN" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/geekbar_logo.webp' | relative_url }}" alt="Geek Bar" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/duracell_logo.webp' | relative_url }}" alt="Duracell" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/clear_eyes_logo.webp' | relative_url }}" alt="Clear Eyes" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/bic_logo.webp' | relative_url }}" alt="BIC" loading="lazy" decoding="async"></div>
@@ -161,6 +162,7 @@ description: Explore nationwide 1099 independent sales opportunities with no quo
         <div class="hc-brand-logo"><img src="{{ '/assets/images/chapstick_logo.webp' | relative_url }}" alt="ChapStick" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/zippo_logo.webp' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/zyn_logo.webp' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/geekbar_logo.webp' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/duracell_logo.webp' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/clear_eyes_logo.webp' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/bic_logo.webp' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
