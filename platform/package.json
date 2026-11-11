@@ -1,0 +1,12 @@
+{
+  "name": "highline-platform",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev": "pnpm --filter @highline/api dev",
+    "typecheck": "pnpm --filter @highline/api typecheck",
+    "build": "pnpm --filter @highline/api build",
+    "start": "pnpm --filter @highline/api start"
+  }
+}
