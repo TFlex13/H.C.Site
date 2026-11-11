@@ -147,7 +147,7 @@ description: Explore nationwide 1099 independent sales opportunities with no quo
       <div class="hc-brands-group">
         <div class="hc-brand-logo"><img src="{{ '/assets/images/Archer_logo.png' | relative_url }}" alt="Archer" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/C2O_Coconut_water_logo.png' | relative_url }}" alt="C2O" loading="lazy" decoding="async"></div>
-        <div class="hc-brand-logo"><img src="{{ '/assets/images/Ghost-Logo.png' | relative_url }}" alt="Ghost" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/duracell_logo.webp' | relative_url }}" alt="Duracell" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/lenny-larrys-logo-black.png' | relative_url }}" alt="Lenny and Larry's" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/Liquid-Death-Logo.png' | relative_url }}" alt="Liquid Death" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/Nantucket_crisps_logo.png' | relative_url }}" alt="Nantucket Crisps" loading="lazy" decoding="async"></div>
@@ -159,7 +159,7 @@ description: Explore nationwide 1099 independent sales opportunities with no quo
       <div class="hc-brands-group" aria-hidden="true">
         <div class="hc-brand-logo"><img src="{{ '/assets/images/Archer_logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/C2O_Coconut_water_logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
-        <div class="hc-brand-logo"><img src="{{ '/assets/images/Ghost-Logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/duracell_logo.webp' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/lenny-larrys-logo-black.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/Liquid-Death-Logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/Nantucket_crisps_logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
