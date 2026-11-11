@@ -652,3 +652,26 @@
 @keyframes seo-outline-glow{0%,100%{text-shadow:0 0 22px rgba(0,153,198,.06)}50%{text-shadow:0 0 38px rgba(0,153,198,.28)}}
 @media(max-width:600px){.seo-home-route{grid-template-columns:24px minmax(0,1fr) 42px}.seo-home-route-arrow{width:37px;height:37px}.seo-home-route-arrow .hc-trend-arrow{width:43px;height:43px}}
 @media(prefers-reduced-motion:reduce){.seo-home--cinematic,.seo-home--cinematic:after,.seo-home-explore,.seo-home-explore:before,.seo-home-route-arrow,.seo-home--cinematic .seo-home-outline{animation:none!important}}
+
+
+/* Four-step journey: top-aligned stage labels, vertically centered copy, no icons */
+.hc-journey-card-copy {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  align-items: stretch;
+  padding-top: clamp(20px, 2.4vw, 42px);
+  padding-bottom: clamp(24px, 3vw, 54px);
+}
+.hc-journey-card-copy > div:nth-child(2) {
+  align-self: center;
+  min-width: 0;
+}
+.hc-journey-meta {
+  align-items: baseline;
+}
+@media (max-width: 600px) {
+  .hc-journey-card-copy {
+    padding-top: 20px;
+    padding-bottom: 26px;
+  }
+}
