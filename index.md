@@ -153,7 +153,7 @@ description: Explore nationwide 1099 independent sales opportunities with no quo
         <div class="hc-brand-logo"><img src="{{ '/assets/images/monster_energy_logo.webp' | relative_url }}" alt="Monster Energy" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/red_bull_logo.webp' | relative_url }}" alt="Red Bull" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/RedHawk_Logo.png' | relative_url }}" alt="RedHawk" loading="lazy" decoding="async"></div>
-        <div class="hc-brand-logo"><img src="{{ '/assets/images/Snak_Club_Logo.png' | relative_url }}" alt="Snak Club" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/rockstar_energy_logo.webp' | relative_url }}" alt="Rockstar Energy" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/suorin-logo.png' | relative_url }}" alt="Suorin" loading="lazy" decoding="async"></div>
       </div>
       <div class="hc-brands-group" aria-hidden="true">
@@ -165,7 +165,7 @@ description: Explore nationwide 1099 independent sales opportunities with no quo
         <div class="hc-brand-logo"><img src="{{ '/assets/images/monster_energy_logo.webp' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/red_bull_logo.webp' | relative_url }}" alt="Red Bull" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/RedHawk_Logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
-        <div class="hc-brand-logo"><img src="{{ '/assets/images/Snak_Club_Logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/rockstar_energy_logo.webp' | relative_url }}" alt="Rockstar Energy" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/suorin-logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
       </div>
     </div>
