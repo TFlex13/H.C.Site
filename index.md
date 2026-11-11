@@ -38,11 +38,11 @@ description: Explore nationwide 1099 independent sales opportunities with no quo
   .hc-video-player { position: relative; min-width: 0; }
   .hc-video-player .hc-feature-video { display: block; width: 100%; }
   .hc-video-play-overlay { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 78px; height: 78px; border: 5px solid #009bc1; border-radius: 50%; background: transparent; color: #009bc1; display: grid; place-items: center; padding: 0; cursor: pointer; box-shadow: none; transition: transform .2s ease; z-index: 2; }
-  .hc-video-play-overlay svg { width: 45px; height: 45px; margin-left: 5px; }
+  .hc-video-play-overlay svg { width: 57px; height: 57px; margin-left: 0; transform: translateX(3px); }
   .hc-video-play-overlay:hover { transform: translate(-50%, -50%) scale(1.06); }
   .hc-video-play-overlay:focus-visible { outline: 3px solid #ffffff; outline-offset: 4px; }
   .hc-video-play-overlay[hidden] { display: none; }
-  @media (max-width: 600px) { .hc-video-play-overlay { width: 62px; height: 62px; border-width: 4px; } .hc-video-play-overlay svg { width: 37px; height: 37px; } }
+  @media (max-width: 600px) { .hc-video-play-overlay { width: 62px; height: 62px; border-width: 4px; } .hc-video-play-overlay svg { width: 46px; height: 46px; } }
 </style>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
