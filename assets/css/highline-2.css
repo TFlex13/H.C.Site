@@ -283,6 +283,8 @@
 .hc-brands-group{display:flex;align-items:center;flex-shrink:0;gap:0}
 .hc-brand-logo{width:clamp(180px,16vw,260px);height:125px;display:flex;align-items:center;justify-content:center;padding:20px 28px;flex-shrink:0}
 .hc-brand-logo img{display:block;max-width:100%;max-height:85px;width:auto;height:auto;object-fit:contain;filter:grayscale(.15);transition:filter .25s,transform .25s}
+.hc-brand-logo img[src$=".webp"]{transform:scale(1.65)}
+.hc-brand-logo img[src$=".webp"]:hover{filter:none;transform:scale(1.75)}
 .hc-brand-logo img:hover{filter:none;transform:scale(1.07)}
 @keyframes hc-brand-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @media(max-width:650px){.hc-brands{padding:65px 0 75px}.hc-brands-heading{margin-bottom:25px}.hc-brands-heading>p:last-child{font-size:1rem}.hc-brand-logo{width:175px;height:105px;padding:16px 24px}.hc-brand-logo img{max-height:72px}.hc-brands-track{animation-duration:38s}}
