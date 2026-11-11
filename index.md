@@ -23,12 +23,40 @@ description: Explore nationwide 1099 independent sales opportunities with no quo
       <h2 id="hc-video-title" class="hc-heading">Real Relationships.<br>Real Opportunities.</h2>
       <p>Highline Connect brings independent sales representatives and innovative brands together to reach retailers nationwide. Build valuable store relationships, introduce products businesses want to carry, and create opportunities for ongoing commission income.</p>
     </div>
-    <video class="hc-feature-video" controls playsinline preload="metadata" aria-label="Highline Connect company presentation">
-      <source src="{{ '/assets/Videos/HLC_Corp_compressed.mp4' | relative_url }}" type="video/mp4">
-      Your browser does not support HTML5 video.
-    </video>
+    <div class="hc-video-player">
+      <video id="hc-company-video" class="hc-feature-video" controls playsinline preload="metadata" aria-label="Highline Connect company presentation">
+        <source src="{{ '/assets/Videos/HLC_Corp_compressed.mp4' | relative_url }}" type="video/mp4">
+        Your browser does not support HTML5 video.
+      </video>
+      <button class="hc-video-play-overlay" type="button" aria-label="Play Highline Connect company presentation" aria-controls="hc-company-video">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8 5.5L19 12 8 18.5Z" fill="currentColor"/></svg>
+      </button>
+    </div>
   </div>
 </section>
+<style>
+  .hc-video-player { position: relative; min-width: 0; }
+  .hc-video-player .hc-feature-video { display: block; width: 100%; }
+  .hc-video-play-overlay { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 78px; height: 78px; border: 3px solid #009bc1; border-radius: 50%; background: #009bc1; color: #fff; display: grid; place-items: center; padding: 0; cursor: pointer; box-shadow: 0 5px 24px rgba(0,0,0,.35); transition: background .2s ease, transform .2s ease; z-index: 2; }
+  .hc-video-play-overlay svg { width: 35px; height: 35px; margin-left: 4px; }
+  .hc-video-play-overlay:hover { background: #007fa4; transform: translate(-50%, -50%) scale(1.06); }
+  .hc-video-play-overlay:focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
+  .hc-video-play-overlay[hidden] { display: none; }
+  @media (max-width: 600px) { .hc-video-play-overlay { width: 62px; height: 62px; } .hc-video-play-overlay svg { width: 29px; height: 29px; } }
+</style>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var video = document.getElementById('hc-company-video');
+    var button = document.querySelector('.hc-video-play-overlay');
+    if (!video || !button) return;
+    button.addEventListener('click', function () {
+      var result = video.play();
+      if (result && typeof result.catch === 'function') result.catch(function () { button.hidden = false; });
+    });
+    video.addEventListener('play', function () { button.hidden = true; });
+    video.addEventListener('ended', function () { button.hidden = false; });
+  });
+</script>
 
 <section id="opportunity" class="hc-opportunity" aria-labelledby="opportunity-title">
   <div class="hc-opportunity-topline"><span>THE INDEPENDENT ADVANTAGE</span><span>YOUR TERRITORY / YOUR PACE / YOUR POTENTIAL</span></div>
