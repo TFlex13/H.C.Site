@@ -150,7 +150,7 @@ description: Explore nationwide 1099 independent sales opportunities with no quo
         <div class="hc-brand-logo"><img src="{{ '/assets/images/duracell_logo.webp' | relative_url }}" alt="Duracell" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/clear_eyes_logo.webp' | relative_url }}" alt="Clear Eyes" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/bic_logo.webp' | relative_url }}" alt="BIC" loading="lazy" decoding="async"></div>
-        <div class="hc-brand-logo"><img src="{{ '/assets/images/Nantucket_crisps_logo.png' | relative_url }}" alt="Nantucket Crisps" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/monster_energy_logo.webp' | relative_url }}" alt="Monster Energy" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/OLIPOP_logo.png' | relative_url }}" alt="OLIPOP" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/RedHawk_Logo.png' | relative_url }}" alt="RedHawk" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/Snak_Club_Logo.png' | relative_url }}" alt="Snak Club" loading="lazy" decoding="async"></div>
@@ -162,7 +162,7 @@ description: Explore nationwide 1099 independent sales opportunities with no quo
         <div class="hc-brand-logo"><img src="{{ '/assets/images/duracell_logo.webp' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/clear_eyes_logo.webp' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/bic_logo.webp' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
-        <div class="hc-brand-logo"><img src="{{ '/assets/images/Nantucket_crisps_logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
+        <div class="hc-brand-logo"><img src="{{ '/assets/images/monster_energy_logo.webp' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/OLIPOP_logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/RedHawk_Logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
         <div class="hc-brand-logo"><img src="{{ '/assets/images/Snak_Club_Logo.png' | relative_url }}" alt="" loading="lazy" decoding="async"></div>
