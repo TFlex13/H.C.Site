@@ -86,7 +86,7 @@ description: Explore nationwide 1099 independent sales opportunities with no quo
   <div class="seo-home-ambient" aria-hidden="true"></div>
   <div class="seo-home-shell">
     <div class="seo-home-intro">
-      <p class="seo-kicker"><span class="seo-home-dash" aria-hidden="true"></span> NATIONWIDE INDEPENDENT SALES</p>
+      <p class="seo-kicker">NATIONWIDE INDEPENDENT SALES</p>
       <h2 id="seo-home-title">YOUR CITY.<br><span class="seo-home-orange">YOUR RULES.</span><br><span class="seo-home-outline">YOUR MOVE.</span></h2>
       <p class="seo-home-deck">No quotas. No minimum hours. No required shifts. Represent participating brands to local retailers, on a schedule that's entirely yours.</p>
       <div class="seo-home-facts" aria-label="Opportunity highlights">
