@@ -10,6 +10,15 @@ CREATE TABLE commission_order_decisions (
   decided_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT commission_order_one_decision UNIQUE(order_id)
 );
+CREATE OR REPLACE FUNCTION guard_commission_order_decision_history()
+RETURNS trigger LANGUAGE plpgsql AS $
+BEGIN
+  RAISE EXCEPTION 'Commission decision history is immutable';
+END;
+$;
+CREATE TRIGGER commission_decision_history_immutable_guard
+BEFORE UPDATE OR DELETE ON commission_order_decisions
+FOR EACH ROW EXECUTE FUNCTION guard_commission_order_decision_history();
 CREATE INDEX commission_order_decisions_actor_idx ON commission_order_decisions(decided_by,decided_at DESC);
 CREATE OR REPLACE FUNCTION guard_commission_order_snapshot()
 RETURNS trigger LANGUAGE plpgsql AS $$
