@@ -141,6 +141,35 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
       CREATE TRIGGER commission_order_immutable_guard BEFORE UPDATE OR DELETE
       ON "${schema}".commission_orders FOR EACH ROW
       EXECUTE FUNCTION "${schema}".guard_commission_order_snapshot();
+      CREATE TABLE "${schema}".commission_vendor_receipts (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        order_id uuid NOT NULL UNIQUE REFERENCES "${schema}".commission_orders(id),
+        vendor_id uuid NOT NULL REFERENCES "${schema}".vendors(id),
+        payment_reference text NOT NULL CHECK (length(trim(payment_reference)) BETWEEN 1 AND 200),
+        amount numeric(16,4) NOT NULL CHECK (amount > 0),
+        currency_code char(3) NOT NULL DEFAULT 'USD' CHECK (currency_code='USD'),
+        received_on date NOT NULL,
+        recorded_by uuid NOT NULL REFERENCES "${schema}".users(id),
+        recorded_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE FUNCTION "${schema}".guard_commission_vendor_receipt()
+      RETURNS trigger LANGUAGE plpgsql AS $receipt$
+      DECLARE order_row record;
+      BEGIN
+        IF TG_OP <> 'INSERT' THEN RAISE EXCEPTION 'Vendor receipts are immutable'; END IF;
+        SELECT * INTO order_row FROM "${schema}".commission_orders WHERE id=NEW.order_id FOR UPDATE;
+        IF NOT FOUND OR order_row.status <> 'approved' THEN
+          RAISE EXCEPTION 'Vendor receipt requires approved order';
+        END IF;
+        IF NEW.vendor_id <> order_row.vendor_id OR NEW.amount <> order_row.service_fee_amount OR NEW.currency_code <> order_row.currency_code THEN
+          RAISE EXCEPTION 'Vendor receipt mismatch';
+        END IF;
+        RETURN NEW;
+      END;
+      $receipt$;
+      CREATE TRIGGER commission_vendor_receipt_guard BEFORE INSERT OR UPDATE OR DELETE
+      ON "${schema}".commission_vendor_receipts FOR EACH ROW
+      EXECUTE FUNCTION "${schema}".guard_commission_vendor_receipt();
       CREATE TABLE "${schema}".sessions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES "${schema}".users(id),
         token_hash text NOT NULL UNIQUE, expires_at timestamptz NOT NULL
@@ -350,6 +379,26 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     assert.equal(approved.statusCode, 200, approved.body);
     assert.equal(approved.json().order.status, 'approved');
     assert.equal(approved.json().decision.decidedBy, adminId);
+    const receiptUrl = '/admin/orders/' + savedOrder.id + '/vendor-receipt';
+    const receiptPayload = { paymentReference: 'BANK-TRANSFER-001', receivedOn: '2026-11-16' };
+    assert.equal((await app.inject({ method: 'POST', url: receiptUrl, headers: repHeaders, payload: receiptPayload })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'POST', url: receiptUrl, headers: adminHeaders, payload: { ...receiptPayload, receivedOn: '2026-02-30' } })).statusCode, 400);
+    const receiptResponse = await app.inject({ method: 'POST', url: receiptUrl, headers: adminHeaders, payload: receiptPayload });
+    assert.equal(receiptResponse.statusCode, 201, receiptResponse.body);
+    assert.equal(Number(receiptResponse.json().receipt.amount), 5.6);
+    assert.equal(receiptResponse.json().representativePaid, false);
+    assert.equal((await app.inject({ method: 'POST', url: receiptUrl, headers: adminHeaders, payload: receiptPayload })).statusCode, 409);
+    assert.equal((await app.inject({ method: 'GET', url: '/admin/vendor-receipts', headers: repHeaders })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'GET', url: '/admin/vendor-receipts', headers: adminHeaders })).json().receipts.length, 1);
+    const reconciliation = await app.inject({ method: 'GET', url: '/admin/commissions/reconciliation', headers: adminHeaders });
+    assert.equal(reconciliation.statusCode, 200, reconciliation.body);
+    assert.equal(Number(reconciliation.json().vendors[0].receivedFees), 5.6);
+    assert.equal(Number(reconciliation.json().vendors[0].outstandingFees), 0);
+    assert.equal(Number(reconciliation.json().vendors[0].representativeLiabilityOnReceivedOrders), 4);
+    assert.equal(reconciliation.json().representativePayoutsImplemented, false);
+    await assert.rejects(pool.query('UPDATE commission_vendor_receipts SET amount=1'));
+    await assert.rejects(pool.query('DELETE FROM commission_vendor_receipts'));
+
     assert.equal((await app.inject({ method: 'POST', url: decisionUrl, headers: adminHeaders, payload: { decision: 'voided', reason: 'Attempt to reverse decision' } })).statusCode, 409);
     assert.equal((await app.inject({ method: 'GET', url: '/admin/orders/' + savedOrder.id + '/decisions', headers: repHeaders })).statusCode, 403);
     assert.equal((await app.inject({ method: 'GET', url: '/admin/orders/' + savedOrder.id + '/decisions', headers: adminHeaders })).json().decisions.length, 1);
