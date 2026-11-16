@@ -263,7 +263,7 @@ app.get('/admin/stores/:id/assignment-history', async (request, reply) => {
   return { events: result.rows };
 });
 
-const percentPattern = /^(?:0|[1-9]\\d{0,2})(?:\\.\\d{1,4})?$/;
+const percentPattern = /^(?:0|[1-9]\d{0,2})(?:\.\d{1,4})?$/;
 const percentUnits = (value: string) => percentPattern.test(value) && Number(value) <= 100
   ? Math.round(Number(value) * 10000) : null;
 const agreementColumns = 'id,vendor_id AS "vendorId",service_fee_percent::text AS "serviceFeePercent",highline_percent::text AS "highlinePercent",representative_percent::text AS "representativePercent",effective_from AS "effectiveFrom",effective_until AS "effectiveUntil",created_by AS "createdBy",created_at AS "createdAt"';
