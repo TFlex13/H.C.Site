@@ -1,4 +1,7 @@
 import Fastify from 'fastify';
+import { randomBytes, createCipheriv } from 'node:crypto';
+import { mkdir, writeFile, unlink } from 'node:fs/promises';
+import { join } from 'node:path';
 import { financeDashboardHtml } from './finance-dashboard.js';
 import { invitationPageHtml } from './invitation-page.js';
 import { onboardingPageHtml } from './onboarding-page.js';
@@ -83,6 +86,52 @@ app.post('/auth/logout', async (request, reply) => {
   if (!user || !token || !pool) return reply.code(401).send({ error: 'Unauthorized' });
   await pool.query('DELETE FROM sessions WHERE token_hash=$1', [tokenHash(token)]);
   return { status: 'ok' };
+});
+// Sensitive uploads are encrypted before disk write. The encryption key must be
+// provisioned separately and backed up securely; never commit it to source control.
+const documentKeyHex = process.env.HIGHLINE_DOCUMENT_ENCRYPTION_KEY ?? '';
+const documentKey = /^[a-fA-F0-9]{64}$/.test(documentKeyHex) ? Buffer.from(documentKeyHex,'hex') : null;
+const documentRoot = process.env.HIGHLINE_PRIVATE_DOCUMENT_DIR;
+const documentUploadsEnabled = Boolean(documentKey && documentRoot);
+app.addContentTypeParser('application/octet-stream', { parseAs: 'buffer', bodyLimit: 10 * 1024 * 1024 }, (_req, body, done) => done(null,body));
+const documentTypes = ['id_front','id_back','w9'] as const;
+app.get('/representative/documents', async (request, reply) => {
+ const user = await actor(request.headers.authorization);
+ if (!user || user.role!=='representative' || !pool) return reply.code(403).send({error:'Forbidden'});
+ const found=await pool.query('SELECT document_type AS "documentType",original_filename AS "filename",review_status AS "status",submitted_at AS "submittedAt" FROM representative_documents WHERE representative_id=$1 ORDER BY document_type',[user.id]);
+ return { uploadsEnabled:documentUploadsEnabled, documents:found.rows };
+});
+app.post('/representative/documents/:type', { bodyLimit: 10*1024*1024 }, async (request, reply) => {
+ const user=await actor(request.headers.authorization);
+ if (!user || user.role!=='representative' || !pool) return reply.code(403).send({error:'Forbidden'});
+ if (!documentUploadsEnabled || !documentKey || !documentRoot) return reply.code(503).send({error:'Secure document storage is not configured'});
+ const type=(request.params as {type:string}).type;
+ if (!documentTypes.some(x=>x===type)) return reply.code(400).send({error:'Invalid document type'});
+ const mime=request.headers['x-document-mime'];
+ const filename=request.headers['x-document-name'];
+ const data=request.body;
+ if (!Buffer.isBuffer(data) || data.length<1 || data.length>10*1024*1024 || typeof filename!=='string' || filename.length>180 || !/^[a-zA-Z0-9_. ()-]+$/.test(filename))
+   return reply.code(400).send({error:'Invalid document'});
+ const pdf=data.subarray(0,5).toString()==='%PDF-';
+ const jpeg=data[0]===0xff && data[1]===0xd8 && data[2]===0xff;
+ const png=data.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
+ if (!((mime==='application/pdf'&&pdf)||(mime==='image/jpeg'&&jpeg)||(mime==='image/png'&&png)) || (type==='w9'&&!pdf))
+   return reply.code(415).send({error:'Use PDF for W-9 or PDF/JPEG/PNG for ID'});
+ const storageKey=randomBytes(24).toString('hex');
+ const iv=randomBytes(12);const cipher=createCipheriv('aes-256-gcm',documentKey,iv);
+ const encrypted=Buffer.concat([iv,cipher.update(data),cipher.final(),cipher.getAuthTag()]);
+ await mkdir(documentRoot,{recursive:true,mode:0o700});
+ const file=join(documentRoot,storageKey);
+ await writeFile(file,encrypted,{flag:'wx',mode:0o600});
+ try {
+   await pool.query(`INSERT INTO representative_documents(representative_id,document_type,original_filename,mime_type,byte_size,storage_key)
+     VALUES($1,$2,$3,$4,$5,$6)
+     ON CONFLICT(representative_id,document_type) DO UPDATE SET original_filename=EXCLUDED.original_filename,mime_type=EXCLUDED.mime_type,byte_size=EXCLUDED.byte_size,storage_key=EXCLUDED.storage_key,submitted_at=now(),review_status='pending_review',reviewed_at=NULL,reviewed_by=NULL`,[user.id,type,filename,mime,data.length,storageKey]);
+ } catch(err){await unlink(file).catch(()=>{});throw err;}
+ const docs=await pool.query("SELECT document_type FROM representative_documents WHERE representative_id=$1",[user.id]);
+ const types=new Set(docs.rows.map((x:{document_type:string})=>x.document_type));
+ await pool.query("UPDATE representative_onboarding SET identity_document_status=CASE WHEN $2 THEN 'pending_review' ELSE 'not_submitted' END,tax_document_status=CASE WHEN $3 THEN 'pending_review' ELSE 'not_submitted' END,updated_at=now() WHERE representative_id=$1",[user.id,types.has('id_front')&&types.has('id_back'),types.has('w9')]);
+ return reply.code(201).send({documentType:type,status:'pending_review'});
 });
 // Self-service onboarding stores contact details only. Sensitive document uploads
 // require a separate vetted private-storage integration.
