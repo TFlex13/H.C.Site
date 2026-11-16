@@ -125,8 +125,13 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     const updatedProfile = await app.inject({ method: 'GET', url: '/representative/profile', headers: repHeaders });
     assert.equal((updatedProfile.json() as { profile: { phone: string; companyName: string } }).profile.phone, '555-0100');
     assert.equal((updatedProfile.json() as { profile: { phone: string; companyName: string } }).profile.companyName, 'Highline Partner');
-    assert.equal((await app.inject({ method: 'PUT', url: '/representative/profile', headers: repHeaders, payload: { phone: '555', companyName: null, userId: adminId } })).statusCode, 400);
+    // Fastify removes unrecognized fields; the request must still update only the actor's profile.
+    const attemptedCrossAccount = await app.inject({ method: 'PUT', url: '/representative/profile', headers: repHeaders, payload: { phone: '555', companyName: null, userId: adminId } });
+    assert.equal(attemptedCrossAccount.statusCode, 200);
+    assert.equal((attemptedCrossAccount.json() as { profile: { id: string } }).profile.id, repId);
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM representative_profiles')).rows[0].count, 1);
+    assert.equal((await pool.query('SELECT user_id FROM representative_profiles')).rows[0].user_id, repId);
+    assert.equal((await pool.query('SELECT 1 FROM representative_profiles WHERE user_id=$1', [adminId])).rowCount, 0);
 
     // Only administrators may list or suspend representatives.
     assert.equal((await app.inject({ method: 'GET', url: '/admin/representatives', headers: { authorization: 'Bearer ' + repToken } })).statusCode, 403);
