@@ -197,6 +197,17 @@ app.get('/admin/representative-onboarding', async (request, reply) => {
   const found = await pool.query("SELECT "+onboardingFields+",u.display_name AS \"displayName\",u.email FROM representative_onboarding o JOIN users u ON u.id=o.representative_id ORDER BY u.display_name LIMIT 200");
   return { representatives: found.rows };
 });
+// Admin-only metadata review queue. No sensitive document bytes or storage paths are exposed.
+app.get('/admin/representative-onboarding/:id/documents', async (request, reply) => {
+ const user=await actor(request.headers.authorization);
+ if (!user || user.role!=='admin' || !pool) return reply.code(403).send({error:'Forbidden'});
+ const {id}=request.params as {id:string};
+ if (!uuid(id)) return reply.code(400).send({error:'Invalid representative'});
+ const rep=await pool.query('SELECT submitted_at,approval_status FROM representative_onboarding WHERE representative_id=$1',[id]);
+ if (!rep.rowCount) return reply.code(404).send({error:'Representative not found'});
+ const docs=await pool.query('SELECT document_type AS "documentType",original_filename AS "filename",mime_type AS "mimeType",byte_size AS "byteSize",review_status AS "status",submitted_at AS "submittedAt",reviewed_at AS "reviewedAt" FROM representative_documents WHERE representative_id=$1 ORDER BY document_type',[id]);
+ return {submittedAt:rep.rows[0].submitted_at,approvalStatus:rep.rows[0].approval_status,documents:docs.rows};
+});
 app.patch('/admin/representative-onboarding/:id/review', { schema: { body: { type: 'object', additionalProperties: false, required: ['status','reason'], properties: { status: { type: 'string', enum: ['approved','rejected','suspended','pending'] }, reason: { type: 'string', minLength: 5, maxLength: 1000 } } } } }, async (request, reply) => {
   const user = await actor(request.headers.authorization);
   if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
