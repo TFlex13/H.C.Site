@@ -12,13 +12,12 @@ export class LoginAttemptLimiter {
     return keys.some(key => (this.entry(key, now)?.count ?? 0) >= this.limit);
   }
   failed(keys: string[], now = Date.now()) {
-    // Prune expired records to bound memory even with many distinct login attempts.
-    if (this.attempts.size >= this.maxEntries) {
-      for (const [key, value] of this.attempts) if (value.expires <= now) this.attempts.delete(key);
-      if (this.attempts.size >= this.maxEntries) this.attempts.delete(this.attempts.keys().next().value!);
-    }
     for (const key of keys) {
       const current = this.entry(key, now);
+      if (!current && this.attempts.size >= this.maxEntries) {
+        for (const [candidate, value] of this.attempts) if (value.expires <= now) this.attempts.delete(candidate);
+        if (this.attempts.size >= this.maxEntries) this.attempts.delete(this.attempts.keys().next().value!);
+      }
       this.attempts.set(key, { count: (current?.count ?? 0) + 1, expires: current?.expires ?? now + this.windowMs });
     }
   }
