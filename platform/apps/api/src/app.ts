@@ -222,8 +222,8 @@ app.get('/representative/stores', async (request, reply) => {
 });
 app.put('/admin/stores/:id/assignment', {
   schema: { body: { type: 'object', additionalProperties: false, required: ['territoryId','representativeId'],
-    properties: { territoryId: { anyOf: [{ type: 'string' }, { type: 'null' }] },
-      representativeId: { anyOf: [{ type: 'string' }, { type: 'null' }] } } } }
+    properties: { territoryId: { type: ['string', 'null'] },
+      representativeId: { type: ['string', 'null'] } } } }
 }, async (request, reply) => {
   const user = await actor(request.headers.authorization);
   if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
