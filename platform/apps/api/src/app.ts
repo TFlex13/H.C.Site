@@ -391,6 +391,38 @@ app.get('/admin/orders', async (request, reply) => {
   const result = await pool.query('SELECT ' + orderColumns + ' FROM commission_orders ORDER BY recorded_at DESC,id DESC LIMIT 100');
   return { orders: result.rows };
 });
+app.post('/admin/orders/:id/decision', { schema: { body: { type: 'object', additionalProperties: false, required: ['decision','reason'], properties: {
+  decision: { type: 'string', enum: ['approved','voided'] },
+  reason: { type: 'string', minLength: 5, maxLength: 1000 }
+} } } }, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const { id } = request.params as { id: string };
+  const { decision, reason } = request.body as { decision: 'approved' | 'voided'; reason: string };
+  if (!uuid(id) || reason.trim().length < 5) return reply.code(400).send({ error: 'Invalid order ID or reason' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const existing = await client.query('SELECT status FROM commission_orders WHERE id=$1 FOR UPDATE', [id]);
+    if (!existing.rowCount) { await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Order not found' }); }
+    if (existing.rows[0].status !== 'pending') { await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Order already decided' }); }
+    await client.query("SELECT set_config('highline.decision_actor',$1,true),set_config('highline.decision_reason',$2,true)", [user.id,reason.trim()]);
+    const result = await client.query('UPDATE commission_orders SET status=$1 WHERE id=$2 RETURNING ' + orderColumns, [decision,id]);
+    const audit = await client.query('SELECT id,order_id AS "orderId",previous_status AS "previousStatus",new_status AS "newStatus",decided_by AS "decidedBy",reason,decided_at AS "decidedAt" FROM commission_order_decisions WHERE order_id=$1', [id]);
+    await client.query('COMMIT');
+    return { order: result.rows[0], decision: audit.rows[0] };
+  } catch (err) { await client.query('ROLLBACK'); throw err; }
+  finally { client.release(); }
+});
+app.get('/admin/orders/:id/decisions', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const { id } = request.params as { id: string };
+  if (!uuid(id)) return reply.code(400).send({ error: 'Invalid order ID' });
+  if (!(await pool.query('SELECT 1 FROM commission_orders WHERE id=$1', [id])).rowCount) return reply.code(404).send({ error: 'Order not found' });
+  const result = await pool.query('SELECT id,order_id AS "orderId",previous_status AS "previousStatus",new_status AS "newStatus",decided_by AS "decidedBy",reason,decided_at AS "decidedAt" FROM commission_order_decisions WHERE order_id=$1 ORDER BY decided_at,id', [id]);
+  return { decisions: result.rows };
+});
 app.get('/representative/orders', async (request, reply) => {
   const user = await actor(request.headers.authorization);
   if (!user || user.role !== 'representative' || !pool) return reply.code(403).send({ error: 'Forbidden' });
