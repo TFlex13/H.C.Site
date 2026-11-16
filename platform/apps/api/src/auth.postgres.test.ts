@@ -103,7 +103,7 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     assert.equal((await accept('a'.repeat(43))).statusCode, 400, 'unknown token must be rejected');
     const expired = await invite('expired@test.invalid');
     assert.equal(expired.statusCode, 201);
-    const expiredToken = (expired.json() as { invitationToken: string }).invitationToken;
+    const expiredInvitationToken = (expired.json() as { invitationToken: string }).invitationToken;
     await pool.query("UPDATE invitations SET expires_at=now()-interval '1 minute' WHERE token_hash=$1", [tokenHash(expiredToken)]);
     assert.equal((await accept(expiredToken)).statusCode, 400, 'expired token must be rejected');
     assert.equal((await pool.query('SELECT 1 FROM users WHERE email=$1', ['expired@test.invalid'])).rowCount, 0);
