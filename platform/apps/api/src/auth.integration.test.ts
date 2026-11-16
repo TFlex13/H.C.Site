@@ -7,6 +7,13 @@ import { newToken, tokenHash } from './security.js';
 test('health and database-unavailable routes work without a listener', async (t) => {
   const app = await createApp(null);
   t.after(() => app.close());
+  const dashboard = await app.inject({ method: 'GET', url: '/admin/dashboard' });
+  assert.equal(dashboard.statusCode, 200);
+  assert.match(dashboard.headers['content-type'] ?? '', /text\/html/);
+  assert.match(dashboard.headers['content-security-policy'] ?? '', /frame-ancestors 'none'/);
+  assert.equal(dashboard.headers['cache-control'], 'no-store');
+  assert.match(dashboard.body, /Financial overview/);
+  assert.doesNotMatch(dashboard.body, /localStorage|sessionStorage/);
   const health = await app.inject({ method: 'GET', url: '/health' });
   assert.equal(health.statusCode, 200);
   assert.deepEqual(health.json(), { status: 'ok', service: 'highline-api' });
