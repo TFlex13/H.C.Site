@@ -110,6 +110,31 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM auth_audit_events WHERE action=$1', ['invitation_accepted'])).rows[0].count, 1);
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM auth_audit_events WHERE action=$1', ['invitation_created'])).rows[0].count, 2);
 
+    // Only administrators may list or suspend representatives.
+    assert.equal((await app.inject({ method: 'GET', url: '/admin/representatives', headers: { authorization: 'Bearer ' + repToken } })).statusCode, 403);
+    const directory = await app.inject({ method: 'GET', url: '/admin/representatives', headers: adminHeaders });
+    assert.equal(directory.statusCode, 200);
+    const reps = (directory.json() as { representatives: Array<{ id: string; email: string; active: boolean }> }).representatives;
+    assert.equal(reps.length, 2);
+    assert.ok(reps.every(item => !('password_hash' in item) && !('passwordHash' in item)));
+    assert.equal(reps.find(item => item.id === repId)?.active, true);
+    const statusUrl = '/admin/representatives/' + repId + '/status';
+    assert.equal((await app.inject({ method: 'PATCH', url: statusUrl, headers: { authorization: 'Bearer ' + repToken }, payload: { active: false } })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'PATCH', url: '/admin/representatives/' + adminId + '/status', headers: adminHeaders, payload: { active: false } })).statusCode, 404);
+    const suspended = await app.inject({ method: 'PATCH', url: statusUrl, headers: adminHeaders, payload: { active: false } });
+    assert.equal(suspended.statusCode, 200);
+    assert.equal((suspended.json() as { representative: { active: boolean } }).representative.active, false);
+    assert.equal((await app.inject({ method: 'GET', url: '/auth/me', headers: { authorization: 'Bearer ' + repToken } })).statusCode, 401);
+    assert.equal((await login('rep@test.invalid', password)).statusCode, 401);
+    assert.equal((await pool.query('SELECT 1 FROM sessions WHERE user_id=$1', [repId])).rowCount, 0);
+    assert.equal((await app.inject({ method: 'PATCH', url: statusUrl, headers: adminHeaders, payload: { active: false } })).statusCode, 200);
+    assert.equal((await pool.query("SELECT count(*)::int AS count FROM auth_audit_events WHERE action='representative_disabled' AND subject_email='rep@test.invalid'")).rows[0].count, 1);
+    const restored = await app.inject({ method: 'PATCH', url: statusUrl, headers: adminHeaders, payload: { active: true } });
+    assert.equal(restored.statusCode, 200);
+    assert.equal((await login('rep@test.invalid', password)).statusCode, 200);
+    assert.equal((await pool.query("SELECT count(*)::int AS count FROM auth_audit_events WHERE action='representative_enabled' AND subject_email='rep@test.invalid'")).rows[0].count, 1);
+
+
   } finally {
     await scoped?.end();
     await admin.query('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE').catch(() => {});
