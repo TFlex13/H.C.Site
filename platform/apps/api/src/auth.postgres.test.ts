@@ -80,6 +80,33 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
         ),
         CONSTRAINT valid_agreement_period CHECK (effective_until IS NULL OR effective_until > effective_from)
       );
+      CREATE TABLE "${schema}".commission_orders (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        external_order_reference text NOT NULL,
+        vendor_id uuid NOT NULL REFERENCES "${schema}".vendors(id),
+        store_id uuid NOT NULL REFERENCES "${schema}".stores(id),
+        representative_id uuid NOT NULL REFERENCES "${schema}".users(id),
+        agreement_id uuid NOT NULL REFERENCES "${schema}".vendor_commission_agreements(id),
+        currency_code char(3) NOT NULL DEFAULT 'USD',
+        quantity integer NOT NULL CHECK (quantity > 0),
+        unit_wholesale_price numeric(14,4) NOT NULL,
+        unit_vendor_cost numeric(14,4) NOT NULL,
+        gross_profit numeric(16,4) NOT NULL,
+        service_fee_percent numeric(7,4) NOT NULL,
+        highline_percent numeric(7,4) NOT NULL,
+        representative_percent numeric(7,4) NOT NULL,
+        service_fee_amount numeric(16,4) NOT NULL,
+        highline_amount numeric(16,4) NOT NULL,
+        representative_amount numeric(16,4) NOT NULL,
+        status text NOT NULL DEFAULT 'pending',
+        recorded_by uuid REFERENCES "${schema}".users(id),
+        recorded_at timestamptz NOT NULL DEFAULT now(),
+        UNIQUE(vendor_id,external_order_reference),
+        CHECK (gross_profit = (unit_wholesale_price - unit_vendor_cost) * quantity),
+        CHECK (highline_percent + representative_percent = service_fee_percent),
+        CHECK (highline_amount + representative_amount = service_fee_amount),
+        CHECK (status IN ('pending','approved','voided'))
+      );
       CREATE TABLE "${schema}".sessions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES "${schema}".users(id),
         token_hash text NOT NULL UNIQUE, expires_at timestamptz NOT NULL
@@ -263,6 +290,31 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     assert.equal(Number(agreements[1].serviceFeePercent), 10);
     assert.equal(Number(agreements[0].serviceFeePercent), 14);
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM vendor_commission_agreements WHERE vendor_id=$1', [vendorId])).rows[0].count, 2);
+
+    // Orders resolve the current representative and vendor rates on the server.
+    const orderUrl = '/admin/orders';
+    const validOrder = { externalOrderReference: 'ORDER-001', vendorId, storeId, quantity: 2, unitWholesalePrice: '45.0000', unitVendorCost: '25.0000' };
+    assert.equal((await app.inject({ method: 'POST', url: orderUrl, headers: repHeaders, payload: validOrder })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'POST', url: orderUrl, headers: adminHeaders, payload: validOrder })).statusCode, 409, 'unassigned store cannot earn commissions');
+    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId, representativeId: repId, reason: 'Reassign for commission test' } })).statusCode, 200);
+    assert.equal((await app.inject({ method: 'POST', url: orderUrl, headers: adminHeaders, payload: { ...validOrder, unitVendorCost: '50.0000' } })).statusCode, 400);
+    const recordedOrder = await app.inject({ method: 'POST', url: orderUrl, headers: adminHeaders, payload: validOrder });
+    assert.equal(recordedOrder.statusCode, 201, recordedOrder.body);
+    const savedOrder = recordedOrder.json().order;
+    assert.equal(savedOrder.representativeId, repId);
+    assert.equal(Number(savedOrder.grossProfit), 40);
+    assert.equal(Number(savedOrder.serviceFeePercent), 14);
+    assert.equal(Number(savedOrder.serviceFeeAmount), 5.6);
+    assert.equal(Number(savedOrder.highlineAmount), 1.6);
+    assert.equal(Number(savedOrder.representativeAmount), 4);
+    assert.equal(savedOrder.status, 'pending');
+    assert.equal((await app.inject({ method: 'POST', url: orderUrl, headers: adminHeaders, payload: validOrder })).statusCode, 409);
+    assert.equal((await app.inject({ method: 'GET', url: orderUrl, headers: repHeaders })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'GET', url: orderUrl, headers: adminHeaders })).json().orders.length, 1);
+    assert.equal((await app.inject({ method: 'GET', url: '/representative/orders', headers: repHeaders })).json().orders[0].id, savedOrder.id);
+    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId: null, representativeId: null, reason: 'Transfer away from representative' } })).statusCode, 200);
+    assert.equal((await pool.query('SELECT representative_id,representative_amount::text FROM commission_orders WHERE id=$1', [savedOrder.id])).rows[0].representative_id, repId);
+    assert.equal((await pool.query('SELECT representative_amount::text FROM commission_orders WHERE id=$1', [savedOrder.id])).rows[0].representative_amount, '4.0000');
 
     // Only administrators may list or suspend representatives.
     assert.equal((await app.inject({ method: 'GET', url: '/admin/representatives', headers: { authorization: 'Bearer ' + repToken } })).statusCode, 403);
