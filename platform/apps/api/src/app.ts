@@ -97,6 +97,32 @@ app.patch('/admin/representatives/:id/status', {
   finally { client.release(); }
 });
 
+// Representative profile is self-service; administrators may inspect profiles separately later.
+app.get('/representative/profile', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user) return reply.code(401).send({ error: 'Unauthorized' });
+  if (user.role !== 'representative' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const found = await pool.query('SELECT phone,company_name FROM representative_profiles WHERE user_id=$1', [user.id]);
+  const row = found.rows[0];
+  return { profile: { id: user.id, email: user.email, displayName: user.display_name, phone: row?.phone ?? null, companyName: row?.company_name ?? null } };
+});
+app.put('/representative/profile', {
+  schema: { body: { type: 'object', additionalProperties: false, required: ['phone','companyName'],
+    properties: { phone: { anyOf: [{ type: 'string', maxLength: 40 }, { type: 'null' }] },
+      companyName: { anyOf: [{ type: 'string', maxLength: 160 }, { type: 'null' }] } } } }
+}, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user) return reply.code(401).send({ error: 'Unauthorized' });
+  if (user.role !== 'representative' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const body = request.body as { phone: string | null; companyName: string | null };
+  const phone = body.phone?.trim() || null;
+  const companyName = body.companyName?.trim() || null;
+  const result = await pool.query(
+    'INSERT INTO representative_profiles(user_id,phone,company_name) VALUES($1,$2,$3) ON CONFLICT(user_id) DO UPDATE SET phone=EXCLUDED.phone,company_name=EXCLUDED.company_name,updated_at=now() RETURNING phone,company_name',
+    [user.id,phone,companyName]
+  );
+  return { profile: { id: user.id, email: user.email, displayName: user.display_name, phone: result.rows[0].phone, companyName: result.rows[0].company_name } };
+});
 app.post('/admin/invitations', { schema: { body: { type: 'object', additionalProperties: false, required: ['email'], properties: { email: { type: 'string', maxLength: 254 } } } } }, async (request, reply) => {
   const user = await actor(request.headers.authorization);
   if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
