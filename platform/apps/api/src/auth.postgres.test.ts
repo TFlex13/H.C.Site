@@ -407,6 +407,12 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     assert.equal(approved.statusCode, 200, approved.body);
     assert.equal(approved.json().order.status, 'approved');
     assert.equal(approved.json().decision.decidedBy, adminId);
+    // Funding gate: even an approved order must not be marked paid before vendor receipt.
+    const payoutUrl = '/admin/orders/' + savedOrder.id + '/representative-payout';
+    const payoutPayload = { paymentReference: 'ACH-PAYOUT-001', paidOn: '2026-11-16' };
+    const prematurePayout = await app.inject({ method: 'POST', url: payoutUrl, headers: adminHeaders, payload: payoutPayload });
+    assert.equal(prematurePayout.statusCode, 409, prematurePayout.body);
+    assert.equal((await pool.query('SELECT count(*)::int AS count FROM commission_representative_payouts')).rows[0].count, 0);
     const receiptUrl = '/admin/orders/' + savedOrder.id + '/vendor-receipt';
     const receiptPayload = { paymentReference: 'BANK-TRANSFER-001', receivedOn: '2026-11-16' };
     assert.equal((await app.inject({ method: 'POST', url: receiptUrl, headers: repHeaders, payload: receiptPayload })).statusCode, 403);
@@ -424,8 +430,6 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     assert.equal(Number(reconciliation.json().vendors[0].outstandingFees), 0);
     assert.equal(Number(reconciliation.json().vendors[0].representativeLiabilityOnReceivedOrders), 4);
     assert.equal(reconciliation.json().representativePayoutsImplemented, false);
-    const payoutUrl = '/admin/orders/' + savedOrder.id + '/representative-payout';
-    const payoutPayload = { paymentReference: 'ACH-PAYOUT-001', paidOn: '2026-11-16' };
     assert.equal((await app.inject({ method: 'POST', url: payoutUrl, headers: repHeaders, payload: payoutPayload })).statusCode, 403);
     assert.equal((await app.inject({ method: 'POST', url: payoutUrl, headers: adminHeaders, payload: { ...payoutPayload, paidOn: '2026-02-30' } })).statusCode, 400);
     const balancesBefore = await app.inject({ method: 'GET', url: '/admin/commissions/representative-balances', headers: adminHeaders });
@@ -438,6 +442,24 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     assert.equal(payoutResponse.json().payout.representativeId, repId);
     assert.equal(payoutResponse.json().transferInitiated, false);
     assert.equal((await app.inject({ method: 'POST', url: payoutUrl, headers: adminHeaders, payload: payoutPayload })).statusCode, 409);
+    // Concurrent attempts must resolve to one durable payout, never two.
+    const concurrentResults = await Promise.all(Array.from({ length: 6 }, (_, i) =>
+      app.inject({ method: 'POST', url: payoutUrl, headers: adminHeaders,
+        payload: { ...payoutPayload, paymentReference: 'CONCURRENT-' + i } })));
+    assert.deepEqual(concurrentResults.map(result => result.statusCode), Array(6).fill(409));
+    assert.equal((await pool.query('SELECT count(*)::int AS count FROM commission_representative_payouts WHERE order_id=$1', [savedOrder.id])).rows[0].count, 1);
+    // A later reassignment cannot redirect a historical commission or payout.
+    const historicalRepresentative = await pool.query('SELECT representative_id,representative_amount::text AS amount FROM commission_orders WHERE id=$1', [savedOrder.id]);
+    assert.equal(historicalRepresentative.rows[0].representative_id, repId);
+    assert.equal(Number(historicalRepresentative.rows[0].amount), 4);
+    const reassigned = await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders,
+      payload: { territoryId, representativeId: invitedRepId, reason: 'Service handoff after earned commission' } });
+    assert.equal(reassigned.statusCode, 200, reassigned.body);
+    const historicalPayout = await pool.query('SELECT representative_id,amount::text AS amount FROM commission_representative_payouts WHERE order_id=$1', [savedOrder.id]);
+    assert.equal(historicalPayout.rows[0].representative_id, repId);
+    assert.equal(Number(historicalPayout.rows[0].amount), 4);
+    assert.equal((await app.inject({ method: 'GET', url: '/representative/orders', headers: repHeaders })).json().orders[0].id, savedOrder.id);
+
     assert.equal((await app.inject({ method: 'GET', url: '/admin/representative-payouts', headers: repHeaders })).statusCode, 403);
     assert.equal((await app.inject({ method: 'GET', url: '/admin/representative-payouts', headers: adminHeaders })).json().payouts.length, 1);
     const balancesAfter = await app.inject({ method: 'GET', url: '/admin/commissions/representative-balances', headers: adminHeaders });
