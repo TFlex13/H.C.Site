@@ -105,6 +105,8 @@ app.post('/representative/documents/:type', { bodyLimit: 10*1024*1024 }, async (
  const user=await actor(request.headers.authorization);
  if (!user || user.role!=='representative' || !pool) return reply.code(403).send({error:'Forbidden'});
  if (!documentUploadsEnabled || !documentKey || !documentRoot) return reply.code(503).send({error:'Secure document storage is not configured'});
+ const eligibility=await pool.query("SELECT approval_status FROM representative_onboarding WHERE representative_id=$1",[user.id]);
+ if (!eligibility.rowCount || !['pending','rejected'].includes(eligibility.rows[0].approval_status)) return reply.code(409).send({error:'Document submissions are locked; contact an administrator'});
  const type=(request.params as {type:string}).type;
  if (!documentTypes.some(x=>x===type)) return reply.code(400).send({error:'Invalid document type'});
  const mime=request.headers['x-document-mime'];
