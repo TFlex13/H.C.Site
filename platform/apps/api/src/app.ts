@@ -60,6 +60,77 @@ app.post('/auth/logout', async (request, reply) => {
   await pool.query('DELETE FROM sessions WHERE token_hash=$1', [tokenHash(token)]);
   return { status: 'ok' };
 });
+
+// Administrative representative directory. Never expose password hashes or session tokens.
+app.get('/admin/representatives', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query("SELECT id,email,display_name,active FROM users WHERE role='representative' ORDER BY email,id");
+  return { representatives: result.rows.map(row => ({ id: row.id, email: row.email, displayName: row.display_name, active: row.active })) };
+});
+app.patch('/admin/representatives/:id/status', {
+  schema: {
+    params: { type: 'object', required: ['id'], properties: { id: { type: 'string', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}, { schema: { body: { type: 'object', additionalProperties: false, required: ['email'], properties: { email: { type: 'string', maxLength: 254 } } } } }, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const normalized = email((request.body as { email: string }).email);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) return reply.code(400).send({ error: 'Invalid email' });
+  if ((await pool.query('SELECT 1 FROM users WHERE email=$1', [normalized])).rowCount) return reply.code(409).send({ error: 'Account already exists' });
+  const token = newToken();
+  await pool.query("INSERT INTO invitations(email,token_hash,invited_by,expires_at) VALUES($1,$2,$3,now()+interval '48 hours')", [normalized, tokenHash(token), user.id]);
+  await pool.query('INSERT INTO auth_audit_events(actor_id,action,subject_email) VALUES($1,$2,$3)', [user.id,'invitation_created',normalized]);
+  // Local-development handoff only. Replace with out-of-band email delivery before deployment.
+  return reply.code(201).send({ email: normalized, invitationToken: token, expiresInHours: 48, delivery: 'manual-local-development' });
+});
+app.post('/auth/accept-invitation', { schema: { body: { type: 'object', additionalProperties: false, required: ['token','displayName','password'], properties: { token: { type: 'string', minLength: 43, maxLength: 43 }, displayName: { type: 'string', minLength: 1, maxLength: 120 }, password: { type: 'string', minLength: 12, maxLength: 1024 } } } } }, async (request, reply) => {
+  if (!pool) return reply.code(503).send({ error: 'Database unavailable' });
+  const body = request.body as { token: string; displayName: string; password: string };
+  if (!body.displayName.trim()) return reply.code(400).send({ error: 'Display name required' });
+  const passwordHash = await hashPassword(body.password);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const found = await client.query('SELECT id,email FROM invitations WHERE token_hash=$1 AND accepted_at IS NULL AND expires_at>now() FOR UPDATE', [tokenHash(body.token)]);
+    if (!found.rowCount) { await client.query('ROLLBACK'); return reply.code(400).send({ error: 'Invalid or expired invitation' }); }
+    const invitation = found.rows[0];
+    const created = await client.query("INSERT INTO users(email,display_name,password_hash,role) VALUES($1,$2,$3,'representative') ON CONFLICT (email) DO NOTHING RETURNING id", [invitation.email,body.displayName.trim(),passwordHash]);
+    if (!created.rowCount) { await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Account already exists' }); }
+    await client.query('UPDATE invitations SET accepted_at=now() WHERE id=$1', [invitation.id]);
+    await client.query('INSERT INTO auth_audit_events(actor_id,action,subject_email) VALUES($1,$2,$3)', [created.rows[0].id,'invitation_accepted',invitation.email]);
+    await client.query('COMMIT');
+    return reply.code(201).send({ status: 'created' });
+  } catch (err) { await client.query('ROLLBACK'); throw err; }
+  finally { client.release(); }
+});
+return app;
+}
+ } } },
+    body: { type: 'object', additionalProperties: false, required: ['active'], properties: { active: { type: 'boolean' } } }
+  }
+}, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const { id } = request.params as { id: string };
+  const { active } = request.body as { active: boolean };
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const changed = await client.query("UPDATE users SET active=$1 WHERE id=$2 AND role='representative' AND active IS DISTINCT FROM $1 RETURNING id,email,display_name,active", [active,id]);
+    if (!changed.rowCount) {
+      const existing = await client.query("SELECT id,email,display_name,active FROM users WHERE id=$1 AND role='representative'", [id]);
+      await client.query('ROLLBACK');
+      if (!existing.rowCount) return reply.code(404).send({ error: 'Representative not found' });
+      return { representative: { id: existing.rows[0].id, email: existing.rows[0].email, displayName: existing.rows[0].display_name, active: existing.rows[0].active } };
+    }
+    const row = changed.rows[0];
+    if (!active) await client.query('DELETE FROM sessions WHERE user_id=$1', [id]);
+    await client.query('INSERT INTO auth_audit_events(actor_id,action,subject_email) VALUES($1,$2,$3)', [user.id,active ? 'representative_enabled' : 'representative_disabled',row.email]);
+    await client.query('COMMIT');
+    return { representative: { id: row.id, email: row.email, displayName: row.display_name, active: row.active } };
+  } catch (err) { await client.query('ROLLBACK'); throw err; }
+  finally { client.release(); }
+});
+
 app.post('/admin/invitations', { schema: { body: { type: 'object', additionalProperties: false, required: ['email'], properties: { email: { type: 'string', maxLength: 254 } } } } }, async (request, reply) => {
   const user = await actor(request.headers.authorization);
   if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
