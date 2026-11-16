@@ -23,12 +23,17 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     // Minimal tables required by the live auth routes, isolated per test run.
     await admin.query(`
       CREATE TABLE "${schema}".users (
-        id uuid PRIMARY KEY, email text NOT NULL UNIQUE, display_name text NOT NULL,
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text NOT NULL UNIQUE, display_name text NOT NULL,
         role text NOT NULL, password_hash text NOT NULL, active boolean NOT NULL DEFAULT true
       );
       CREATE TABLE "${schema}".sessions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES "${schema}".users(id),
         token_hash text NOT NULL UNIQUE, expires_at timestamptz NOT NULL
+      );
+      CREATE TABLE "${schema}".invitations (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text NOT NULL,
+        token_hash text NOT NULL UNIQUE, invited_by uuid NOT NULL REFERENCES "${schema}".users(id),
+        expires_at timestamptz NOT NULL, accepted_at timestamptz
       );
       CREATE TABLE "${schema}".auth_audit_events (
         actor_id uuid NOT NULL, action text NOT NULL, subject_email text NOT NULL
@@ -70,6 +75,41 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
       headers: { authorization: 'Bearer ' + repToken }, payload: { email: 'new@test.invalid' }
     })).statusCode, 403);
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM auth_audit_events WHERE action=$1', ['login'])).rows[0].count, 3);
+    // Invitation creation and acceptance use the actual database transaction.
+    // The second session was expired above, so create a fresh admin session.
+    const freshAdmin = await login('admin@test.invalid', password);
+    assert.equal(freshAdmin.statusCode, 200);
+    const adminHeaders = { authorization: 'Bearer ' + (freshAdmin.json() as { token: string }).token };
+    const invite = (email: string) => app.inject({
+      method: 'POST', url: '/admin/invitations', headers: adminHeaders, payload: { email }
+    });
+    const invitation = await invite(' NEW@TEST.INVALID ');
+    assert.equal(invitation.statusCode, 201);
+    const invitationBody = invitation.json() as { email: string; invitationToken: string; delivery: string };
+    assert.equal(invitationBody.email, 'new@test.invalid');
+    assert.equal(invitationBody.delivery, 'manual-local-development');
+    assert.equal((await pool.query('SELECT 1 FROM invitations WHERE token_hash=$1', [tokenHash(invitationBody.invitationToken)])).rowCount, 1);
+    const accept = (token: string, displayName = 'New Representative') => app.inject({
+      method: 'POST', url: '/auth/accept-invitation',
+      payload: { token, displayName, password: 'New-Representative-Password-2026' }
+    });
+    assert.equal((await accept(invitationBody.invitationToken)).statusCode, 201);
+    assert.equal((await accept(invitationBody.invitationToken)).statusCode, 400, 'accepted token must not be reusable');
+    const newUser = await pool.query('SELECT role,display_name FROM users WHERE email=$1', ['new@test.invalid']);
+    assert.equal(newUser.rowCount, 1);
+    assert.equal(newUser.rows[0].role, 'representative');
+    assert.equal(newUser.rows[0].display_name, 'New Representative');
+    assert.equal((await invite('new@test.invalid')).statusCode, 409);
+    assert.equal((await accept('a'.repeat(43))).statusCode, 400, 'unknown token must be rejected');
+    const expired = await invite('expired@test.invalid');
+    assert.equal(expired.statusCode, 201);
+    const expiredToken = (expired.json() as { invitationToken: string }).invitationToken;
+    await pool.query("UPDATE invitations SET expires_at=now()-interval '1 minute' WHERE token_hash=$1", [tokenHash(expiredToken)]);
+    assert.equal((await accept(expiredToken)).statusCode, 400, 'expired token must be rejected');
+    assert.equal((await pool.query('SELECT 1 FROM users WHERE email=$1', ['expired@test.invalid'])).rowCount, 0);
+    assert.equal((await pool.query('SELECT count(*)::int AS count FROM auth_audit_events WHERE action=$1', ['invitation_accepted'])).rows[0].count, 1);
+    assert.equal((await pool.query('SELECT count(*)::int AS count FROM auth_audit_events WHERE action=$1', ['invitation_created'])).rows[0].count, 2);
+
   } finally {
     await scoped?.end();
     await admin.query('DROP SCHEMA IF EXISTS "' + schema + '" CASCADE').catch(() => {});
