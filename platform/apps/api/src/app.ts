@@ -262,6 +262,72 @@ app.get('/admin/stores/:id/assignment-history', async (request, reply) => {
   const result = await pool.query('SELECT id,previous_territory_id AS "previousTerritoryId",new_territory_id AS "newTerritoryId",previous_representative_id AS "previousRepresentativeId",new_representative_id AS "newRepresentativeId",changed_by AS "changedBy",reason,effective_at AS "effectiveAt",changed_at AS "changedAt" FROM store_assignment_events WHERE store_id=$1 ORDER BY changed_at DESC,id DESC', [id]);
   return { events: result.rows };
 });
+
+const percentPattern = /^(?:0|[1-9]\\d{0,2})(?:\\.\\d{1,4})?$/;
+const percentUnits = (value: string) => percentPattern.test(value) && Number(value) <= 100
+  ? Math.round(Number(value) * 10000) : null;
+const agreementColumns = 'id,vendor_id AS "vendorId",service_fee_percent::text AS "serviceFeePercent",highline_percent::text AS "highlinePercent",representative_percent::text AS "representativePercent",effective_from AS "effectiveFrom",effective_until AS "effectiveUntil",created_by AS "createdBy",created_at AS "createdAt"';
+app.post('/admin/vendors', { schema: { body: { type: 'object', additionalProperties: false, required: ['name'], properties: { name: { type: 'string', minLength: 1, maxLength: 200 } } } } }, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const name = (request.body as { name: string }).name.trim();
+  if (!name) return reply.code(400).send({ error: 'Vendor name required' });
+  try {
+    const result = await pool.query('INSERT INTO vendors(name) VALUES($1) RETURNING id,name,active,created_at AS "createdAt"', [name]);
+    return reply.code(201).send({ vendor: result.rows[0] });
+  } catch (err) {
+    if ((err as { code?: string }).code === '23505') return reply.code(409).send({ error: 'Vendor already exists' });
+    throw err;
+  }
+});
+app.get('/admin/vendors', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query('SELECT id,name,active,created_at AS "createdAt" FROM vendors ORDER BY name,id');
+  return { vendors: result.rows };
+});
+app.get('/admin/vendors/:id/agreements', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const { id } = request.params as { id: string };
+  if (!uuid(id)) return reply.code(400).send({ error: 'Invalid vendor ID' });
+  if (!(await pool.query('SELECT 1 FROM vendors WHERE id=$1', [id])).rowCount) return reply.code(404).send({ error: 'Vendor not found' });
+  const result = await pool.query('SELECT ' + agreementColumns + ' FROM vendor_commission_agreements WHERE vendor_id=$1 ORDER BY effective_from DESC,id DESC', [id]);
+  return { agreements: result.rows };
+});
+app.post('/admin/vendors/:id/agreements', { schema: { body: { type: 'object', additionalProperties: false, required: ['serviceFeePercent','highlinePercent','representativePercent'], properties: {
+  serviceFeePercent: { type: 'string', minLength: 1, maxLength: 8 },
+  highlinePercent: { type: 'string', minLength: 1, maxLength: 8 },
+  representativePercent: { type: 'string', minLength: 1, maxLength: 8 }
+} } } }, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const { id } = request.params as { id: string };
+  if (!uuid(id)) return reply.code(400).send({ error: 'Invalid vendor ID' });
+  const body = request.body as { serviceFeePercent: string; highlinePercent: string; representativePercent: string };
+  const total = percentUnits(body.serviceFeePercent), hc = percentUnits(body.highlinePercent), rep = percentUnits(body.representativePercent);
+  if (total === null || hc === null || rep === null || hc + rep !== total) return reply.code(400).send({ error: 'Percentages must be between 0 and 100, with Highline plus representative equal to vendor service fee' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Serialize changes for this vendor, including concurrent agreement requests.
+    const vendor = await client.query('SELECT id FROM vendors WHERE id=$1 AND active=true FOR UPDATE', [id]);
+    if (!vendor.rowCount) { await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Active vendor not found' }); }
+    const now = await client.query('SELECT clock_timestamp() AS ts');
+    const effective = now.rows[0].ts as Date;
+    const previous = await client.query('SELECT id,effective_from FROM vendor_commission_agreements WHERE vendor_id=$1 AND effective_until IS NULL FOR UPDATE', [id]);
+    if (previous.rowCount) {
+      // No retroactive edits: close the old agreement at the instant the new one starts.
+      if (effective <= previous.rows[0].effective_from) { await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Agreement timestamp conflict; retry' }); }
+      await client.query('UPDATE vendor_commission_agreements SET effective_until=$1 WHERE id=$2', [effective,previous.rows[0].id]);
+    }
+    const result = await client.query('INSERT INTO vendor_commission_agreements(vendor_id,service_fee_percent,highline_percent,representative_percent,effective_from,created_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING ' + agreementColumns, [id,body.serviceFeePercent,body.highlinePercent,body.representativePercent,effective,user.id]);
+    await client.query('COMMIT');
+    return reply.code(201).send({ agreement: result.rows[0] });
+  } catch (err) { await client.query('ROLLBACK'); throw err; }
+  finally { client.release(); }
+});
+
 app.post('/admin/invitations', { schema: { body: { type: 'object', additionalProperties: false, required: ['email'], properties: { email: { type: 'string', maxLength: 254 } } } } }, async (request, reply) => {
   const user = await actor(request.headers.authorization);
   if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
