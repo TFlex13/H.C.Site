@@ -11,11 +11,11 @@ CREATE TABLE commission_order_decisions (
   CONSTRAINT commission_order_one_decision UNIQUE(order_id)
 );
 CREATE OR REPLACE FUNCTION guard_commission_order_decision_history()
-RETURNS trigger LANGUAGE plpgsql AS $
+RETURNS trigger LANGUAGE plpgsql AS $decision_guard$
 BEGIN
   RAISE EXCEPTION 'Commission decision history is immutable';
 END;
-$;
+$decision_guard$;
 CREATE TRIGGER commission_decision_history_immutable_guard
 BEFORE UPDATE OR DELETE ON commission_order_decisions
 FOR EACH ROW EXECUTE FUNCTION guard_commission_order_decision_history();
