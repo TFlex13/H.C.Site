@@ -31,6 +31,17 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
         phone text, company_name text, notes text,
         created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
       );
+      CREATE TABLE "${schema}".territories (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL UNIQUE,
+        description text, active boolean NOT NULL DEFAULT true
+      );
+      CREATE TABLE "${schema}".representative_territories (
+        representative_id uuid NOT NULL REFERENCES "${schema}".users(id),
+        territory_id uuid NOT NULL REFERENCES "${schema}".territories(id),
+        assigned_by uuid REFERENCES "${schema}".users(id),
+        assigned_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (representative_id,territory_id)
+      );
       CREATE TABLE "${schema}".sessions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES "${schema}".users(id),
         token_hash text NOT NULL UNIQUE, expires_at timestamptz NOT NULL
@@ -132,6 +143,32 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM representative_profiles')).rows[0].count, 1);
     assert.equal((await pool.query('SELECT user_id FROM representative_profiles')).rows[0].user_id, repId);
     assert.equal((await pool.query('SELECT 1 FROM representative_profiles WHERE user_id=$1', [adminId])).rowCount, 0);
+
+    // Shared territory assignments: admin-only writes and representative-scoped reads.
+    assert.equal((await app.inject({ method: 'POST', url: '/admin/territories', headers: repHeaders, payload: { name: 'Chino' } })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'POST', url: '/admin/territories', headers: adminHeaders, payload: { name: '   ' } })).statusCode, 400);
+    const createdTerritory = await app.inject({ method: 'POST', url: '/admin/territories', headers: adminHeaders, payload: { name: ' Chino ', description: ' West Inland Empire ' } });
+    assert.equal(createdTerritory.statusCode, 201);
+    const territoryId = (createdTerritory.json() as { territory: { id: string } }).territory.id;
+    assert.equal((await app.inject({ method: 'POST', url: '/admin/territories', headers: adminHeaders, payload: { name: 'Chino' } })).statusCode, 409);
+    const assignUrl = '/admin/territories/' + territoryId + '/representatives/' + repId;
+    assert.equal((await app.inject({ method: 'PUT', url: assignUrl, headers: repHeaders })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'PUT', url: '/admin/territories/' + territoryId + '/representatives/' + adminId, headers: adminHeaders })).statusCode, 404);
+    assert.equal((await app.inject({ method: 'PUT', url: assignUrl, headers: adminHeaders })).statusCode, 201);
+    assert.equal((await app.inject({ method: 'PUT', url: assignUrl, headers: adminHeaders })).statusCode, 200);
+    const invitedRepId = (await pool.query('SELECT id FROM users WHERE email=$1', ['new@test.invalid'])).rows[0].id as string;
+    assert.equal((await app.inject({ method: 'PUT', url: '/admin/territories/' + territoryId + '/representatives/' + invitedRepId, headers: adminHeaders })).statusCode, 201);
+    const territoryList = await app.inject({ method: 'GET', url: '/admin/territories', headers: adminHeaders });
+    assert.equal(territoryList.statusCode, 200);
+    assert.equal((territoryList.json() as { territories: Array<{ representatives: unknown[] }> }).territories[0].representatives.length, 2);
+    assert.equal((await app.inject({ method: 'GET', url: '/admin/territories', headers: repHeaders })).statusCode, 403);
+    const myTerritories = await app.inject({ method: 'GET', url: '/representative/territories', headers: repHeaders });
+    assert.equal(myTerritories.statusCode, 200);
+    assert.equal((myTerritories.json() as { territories: Array<{ name: string }> }).territories[0].name, 'Chino');
+    assert.equal((await app.inject({ method: 'DELETE', url: assignUrl, headers: adminHeaders })).statusCode, 200);
+    assert.equal((await app.inject({ method: 'DELETE', url: assignUrl, headers: adminHeaders })).statusCode, 200);
+    assert.equal((await pool.query('SELECT count(*)::int AS count FROM representative_territories')).rows[0].count, 1);
+    assert.equal((await app.inject({ method: 'GET', url: '/representative/territories', headers: repHeaders })).json().territories.length, 0);
 
     // Only administrators may list or suspend representatives.
     assert.equal((await app.inject({ method: 'GET', url: '/admin/representatives', headers: { authorization: 'Bearer ' + repToken } })).statusCode, 403);
