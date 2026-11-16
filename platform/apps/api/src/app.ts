@@ -478,6 +478,67 @@ app.get('/admin/commissions/reconciliation', async (request, reply) => {
   `);
   return { vendors: result.rows, representativePayoutsImplemented: false };
 });
+// A payout records an actual external payment, never initiates one.
+const payoutColumns = 'p.id,p.order_id AS "orderId",p.vendor_receipt_id AS "vendorReceiptId",p.representative_id AS "representativeId",p.payment_reference AS "paymentReference",p.amount::text,p.currency_code AS "currencyCode",p.paid_on::text AS "paidOn",p.recorded_by AS "recordedBy",p.recorded_at AS "recordedAt"';
+app.post('/admin/orders/:id/representative-payout', { schema: { body: { type: 'object', additionalProperties: false, required: ['paymentReference','paidOn'], properties: {
+  paymentReference: { type: 'string', minLength: 1, maxLength: 200 },
+  paidOn: { type: 'string', minLength: 10, maxLength: 10 }
+} } } }, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const { id } = request.params as { id: string };
+  const { paymentReference, paidOn } = request.body as { paymentReference: string; paidOn: string };
+  const date = new Date(paidOn + 'T00:00:00.000Z');
+  if (!uuid(id) || !paymentReference.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(paidOn) || Number.isNaN(date.getTime()) || date.toISOString().slice(0,10) !== paidOn)
+    return reply.code(400).send({ error: 'Invalid order, payment reference or calendar date' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const order = await client.query('SELECT id,representative_id,representative_amount::text AS amount,status FROM commission_orders WHERE id=$1 FOR UPDATE', [id]);
+    if (!order.rowCount) { await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Order not found' }); }
+    if (order.rows[0].status !== 'approved' || Number(order.rows[0].amount) <= 0) {
+      await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Order has no approved representative earnings' });
+    }
+    const receipt = await client.query('SELECT id FROM commission_vendor_receipts WHERE order_id=$1', [id]);
+    if (!receipt.rowCount) { await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Vendor payment must be recorded before payout' }); }
+    const inserted = await client.query('INSERT INTO commission_representative_payouts(order_id,vendor_receipt_id,representative_id,payment_reference,amount,paid_on,recorded_by) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+      [id,receipt.rows[0].id,order.rows[0].representative_id,paymentReference.trim(),order.rows[0].amount,paidOn,user.id]);
+    const result = await client.query('SELECT ' + payoutColumns + ' FROM commission_representative_payouts p WHERE p.id=$1', [inserted.rows[0].id]);
+    await client.query('COMMIT');
+    return reply.code(201).send({ payout: result.rows[0], transferInitiated: false });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    if ((err as { code?: string }).code === '23505') return reply.code(409).send({ error: 'Representative payout already recorded for order' });
+    throw err;
+  } finally { client.release(); }
+});
+app.get('/admin/representative-payouts', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query('SELECT ' + payoutColumns + ' FROM commission_representative_payouts p ORDER BY p.recorded_at DESC,p.id DESC LIMIT 100');
+  return { payouts: result.rows };
+});
+app.get('/admin/commissions/representative-balances', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query(`
+    SELECT o.representative_id AS "representativeId",
+      count(*)::int AS "approvedOrders",
+      count(r.id)::int AS "fundedOrders",
+      count(p.id)::int AS "paidOrders",
+      coalesce(sum(o.representative_amount),0)::text AS "approvedEarnings",
+      coalesce(sum(o.representative_amount) FILTER (WHERE r.id IS NOT NULL),0)::text AS "fundedEarnings",
+      coalesce(sum(p.amount),0)::text AS "paidEarnings",
+      coalesce(sum(o.representative_amount) FILTER (WHERE r.id IS NOT NULL AND p.id IS NULL),0)::text AS "fundedUnpaidBalance",
+      coalesce(sum(o.representative_amount) FILTER (WHERE r.id IS NULL),0)::text AS "awaitingVendorPayment"
+    FROM commission_orders o
+    LEFT JOIN commission_vendor_receipts r ON r.order_id=o.id
+    LEFT JOIN commission_representative_payouts p ON p.order_id=o.id
+    WHERE o.status='approved'
+    GROUP BY o.representative_id ORDER BY o.representative_id
+  `);
+  return { representatives: result.rows };
+});
 app.get('/representative/orders', async (request, reply) => {
   const user = await actor(request.headers.authorization);
   if (!user || user.role !== 'representative' || !pool) return reply.code(403).send({ error: 'Forbidden' });
