@@ -428,7 +428,57 @@ app.get('/admin/orders/:id/decisions', async (request, reply) => {
 const receiptColumns = 'r.id,r.order_id AS "orderId",r.vendor_id AS "vendorId",r.payment_reference AS "paymentReference",r.amount::text,r.currency_code AS "currencyCode",r.received_on::text AS "receivedOn",r.recorded_by AS "recordedBy",r.recorded_at AS "recordedAt"';
 app.post('/admin/orders/:id/vendor-receipt', { schema: { body: { type: 'object', additionalProperties: false, required: ['paymentReference','receivedOn'], properties: {
   paymentReference: { type: 'string', minLength: 1, maxLength: 200 },
-  receivedOn: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}, async (request, reply) => {
+  receivedOn: { type: 'string', minLength: 10, maxLength: 10 }
+} } } }, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const { id } = request.params as { id: string };
+  const { paymentReference, receivedOn } = request.body as { paymentReference: string; receivedOn: string };
+  const date = new Date(receivedOn + 'T00:00:00.000Z');
+  if (!uuid(id) || !paymentReference.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(receivedOn) || Number.isNaN(date.getTime()) || date.toISOString().slice(0,10) !== receivedOn)
+    return reply.code(400).send({ error: 'Invalid order, payment reference or calendar date' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const order = await client.query('SELECT id,vendor_id,service_fee_amount::text AS amount,status FROM commission_orders WHERE id=$1 FOR UPDATE', [id]);
+    if (!order.rowCount) { await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Order not found' }); }
+    if (order.rows[0].status !== 'approved') { await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Only approved orders can be reconciled' }); }
+    const receipt = await client.query('INSERT INTO commission_vendor_receipts(order_id,vendor_id,payment_reference,amount,received_on,recorded_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id',
+      [id,order.rows[0].vendor_id,paymentReference.trim(),order.rows[0].amount,receivedOn,user.id]);
+    const result = await client.query('SELECT ' + receiptColumns + ' FROM commission_vendor_receipts r WHERE r.id=$1', [receipt.rows[0].id]);
+    await client.query('COMMIT');
+    return reply.code(201).send({ receipt: result.rows[0], representativePaid: false });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    if ((err as { code?: string }).code === '23505') return reply.code(409).send({ error: 'Vendor receipt already recorded for order' });
+    throw err;
+  } finally { client.release(); }
+});
+app.get('/admin/vendor-receipts', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query('SELECT ' + receiptColumns + ' FROM commission_vendor_receipts r ORDER BY r.recorded_at DESC,r.id DESC LIMIT 100');
+  return { receipts: result.rows };
+});
+app.get('/admin/commissions/reconciliation', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query(`
+    SELECT o.vendor_id AS "vendorId",
+      count(*)::int AS "approvedOrders",
+      count(r.id)::int AS "receivedOrders",
+      coalesce(sum(o.service_fee_amount),0)::text AS "approvedFees",
+      coalesce(sum(o.service_fee_amount) FILTER (WHERE r.id IS NULL),0)::text AS "outstandingFees",
+      coalesce(sum(r.amount),0)::text AS "receivedFees",
+      coalesce(sum(o.representative_amount) FILTER (WHERE r.id IS NOT NULL),0)::text AS "representativeLiabilityOnReceivedOrders"
+    FROM commission_orders o
+    LEFT JOIN commission_vendor_receipts r ON r.order_id=o.id
+    WHERE o.status='approved'
+    GROUP BY o.vendor_id ORDER BY o.vendor_id
+  `);
+  return { vendors: result.rows, representativePayoutsImplemented: false };
+});
+app.get('/representative/orders', async (request, reply) => {
   const user = await actor(request.headers.authorization);
   if (!user || user.role !== 'representative' || !pool) return reply.code(403).send({ error: 'Forbidden' });
   const result = await pool.query('SELECT ' + orderColumns + ' FROM commission_orders WHERE representative_id=$1 ORDER BY recorded_at DESC,id DESC LIMIT 100', [user.id]);
