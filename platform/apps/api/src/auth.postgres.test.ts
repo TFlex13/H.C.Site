@@ -42,6 +42,22 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
         assigned_at timestamptz NOT NULL DEFAULT now(),
         PRIMARY KEY (representative_id,territory_id)
       );
+      CREATE TABLE "${schema}".stores (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, address_line1 text NOT NULL,
+        address_line2 text, city text NOT NULL, state_region text NOT NULL, postal_code text NOT NULL,
+        country_code char(2) NOT NULL DEFAULT 'US', contact_name text, contact_email text,
+        contact_phone text, notes text, territory_id uuid REFERENCES "${schema}".territories(id),
+        primary_representative_id uuid REFERENCES "${schema}".users(id),
+        active boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE TABLE "${schema}".store_assignment_events (
+        id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        store_id uuid NOT NULL REFERENCES "${schema}".stores(id),
+        previous_territory_id uuid, new_territory_id uuid,
+        previous_representative_id uuid, new_representative_id uuid,
+        changed_by uuid, changed_at timestamptz NOT NULL DEFAULT now()
+      );
       CREATE TABLE "${schema}".sessions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES "${schema}".users(id),
         token_hash text NOT NULL UNIQUE, expires_at timestamptz NOT NULL
@@ -169,6 +185,29 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     assert.equal((await app.inject({ method: 'DELETE', url: assignUrl, headers: adminHeaders })).statusCode, 200);
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM representative_territories')).rows[0].count, 1);
     assert.equal((await app.inject({ method: 'GET', url: '/representative/territories', headers: repHeaders })).json().territories.length, 0);
+
+    // Stores start unassigned and can only be assigned to an active representative in the territory.
+    const storePayload = { name: 'Corner Market', addressLine1: '100 Main St', city: 'Chino', stateRegion: 'CA', postalCode: '91710' };
+    assert.equal((await app.inject({ method: 'POST', url: '/admin/stores', headers: repHeaders, payload: storePayload })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'POST', url: '/admin/stores', headers: adminHeaders, payload: { ...storePayload, name: ' ' } })).statusCode, 400);
+    const newStore = await app.inject({ method: 'POST', url: '/admin/stores', headers: adminHeaders, payload: storePayload });
+    assert.equal(newStore.statusCode, 201);
+    const storeId = (newStore.json() as { store: { id: string } }).store.id;
+    const storeAssignUrl = '/admin/stores/' + storeId + '/assignment';
+    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: repHeaders, payload: { territoryId, representativeId: repId } })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId, representativeId: repId } })).statusCode, 409, 'unassigned representative cannot own store');
+    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId, representativeId: invitedRepId } })).statusCode, 200);
+    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId, representativeId: invitedRepId } })).json().changed, false);
+    assert.equal((await pool.query('SELECT count(*)::int AS count FROM store_assignment_events WHERE store_id=$1', [storeId])).rows[0].count, 1);
+    assert.equal((await app.inject({ method: 'GET', url: '/representative/stores', headers: repHeaders })).json().stores.length, 0);
+    assert.equal((await app.inject({ method: 'GET', url: '/admin/stores', headers: repHeaders })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'GET', url: '/admin/stores', headers: adminHeaders })).json().stores.length, 1);
+    const history = await app.inject({ method: 'GET', url: '/admin/stores/' + storeId + '/assignment-history', headers: adminHeaders });
+    assert.equal(history.statusCode, 200);
+    assert.equal(history.json().events.length, 1);
+    assert.equal((await app.inject({ method: 'GET', url: '/admin/stores/' + storeId + '/assignment-history', headers: repHeaders })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId: null, representativeId: null } })).statusCode, 200);
+    assert.equal((await pool.query('SELECT count(*)::int AS count FROM store_assignment_events WHERE store_id=$1', [storeId])).rows[0].count, 2);
 
     // Only administrators may list or suspend representatives.
     assert.equal((await app.inject({ method: 'GET', url: '/admin/representatives', headers: { authorization: 'Bearer ' + repToken } })).statusCode, 403);
