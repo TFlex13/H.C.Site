@@ -26,6 +26,11 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text NOT NULL UNIQUE, display_name text NOT NULL,
         role text NOT NULL, password_hash text NOT NULL, active boolean NOT NULL DEFAULT true
       );
+      CREATE TABLE "${schema}".representative_profiles (
+        user_id uuid PRIMARY KEY REFERENCES "${schema}".users(id) ON DELETE CASCADE,
+        phone text, company_name text, notes text,
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+      );
       CREATE TABLE "${schema}".sessions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES "${schema}".users(id),
         token_hash text NOT NULL UNIQUE, expires_at timestamptz NOT NULL
@@ -109,6 +114,19 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     assert.equal((await pool.query('SELECT 1 FROM users WHERE email=$1', ['expired@test.invalid'])).rowCount, 0);
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM auth_audit_events WHERE action=$1', ['invitation_accepted'])).rows[0].count, 1);
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM auth_audit_events WHERE action=$1', ['invitation_created'])).rows[0].count, 2);
+
+    // Representatives can maintain their own profile, but cannot edit another account.
+    const repHeaders = { authorization: 'Bearer ' + repToken };
+    assert.equal((await app.inject({ method: 'GET', url: '/representative/profile', headers: adminHeaders })).statusCode, 403);
+    const emptyProfile = await app.inject({ method: 'GET', url: '/representative/profile', headers: repHeaders });
+    assert.equal(emptyProfile.statusCode, 200);
+    assert.equal((emptyProfile.json() as { profile: { phone: string | null } }).profile.phone, null);
+    assert.equal((await app.inject({ method: 'PUT', url: '/representative/profile', headers: repHeaders, payload: { phone: ' 555-0100 ', companyName: ' Highline Partner ' } })).statusCode, 200);
+    const updatedProfile = await app.inject({ method: 'GET', url: '/representative/profile', headers: repHeaders });
+    assert.equal((updatedProfile.json() as { profile: { phone: string; companyName: string } }).profile.phone, '555-0100');
+    assert.equal((updatedProfile.json() as { profile: { phone: string; companyName: string } }).profile.companyName, 'Highline Partner');
+    assert.equal((await app.inject({ method: 'PUT', url: '/representative/profile', headers: repHeaders, payload: { phone: '555', companyName: null, userId: adminId } })).statusCode, 400);
+    assert.equal((await pool.query('SELECT count(*)::int AS count FROM representative_profiles')).rows[0].count, 1);
 
     // Only administrators may list or suspend representatives.
     assert.equal((await app.inject({ method: 'GET', url: '/admin/representatives', headers: { authorization: 'Bearer ' + repToken } })).statusCode, 403);
