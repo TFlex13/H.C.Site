@@ -382,8 +382,8 @@ app.put('/admin/territories/:territoryId/representatives/:representativeId', asy
     await client.query('BEGIN');
     const territory = await client.query('SELECT id FROM territories WHERE id=$1 AND active=true FOR SHARE', [territoryId]);
     if (!territory.rowCount) { await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Active territory not found' }); }
-    const rep = await client.query("SELECT id FROM users WHERE id=$1 AND role='representative' AND active=true FOR SHARE", [representativeId]);
-    if (!rep.rowCount) { await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Active representative not found' }); }
+    const rep = await client.query("SELECT u.id FROM users u JOIN representative_onboarding o ON o.representative_id=u.id WHERE u.id=$1 AND u.role='representative' AND u.active=true AND o.approval_status='approved' FOR SHARE OF u,o", [representativeId]);
+    if (!rep.rowCount) { await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Representative must be active with approved onboarding before territory assignment' }); }
     const added = await client.query('INSERT INTO representative_territories(representative_id,territory_id,assigned_by) VALUES($1,$2,$3) ON CONFLICT DO NOTHING RETURNING representative_id', [representativeId,territoryId,user.id]);
     await client.query('COMMIT');
     return reply.code(added.rowCount ? 201 : 200).send({ territoryId, representativeId, assigned: true, created: Boolean(added.rowCount) });
@@ -467,8 +467,8 @@ app.put('/admin/stores/:id/assignment', {
     if (territoryId !== null && !(await client.query('SELECT 1 FROM territories WHERE id=$1 AND active=true FOR SHARE', [territoryId])).rowCount) {
       await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Active territory not found' });
     }
-    if (representativeId !== null && !(await client.query("SELECT 1 FROM users u JOIN representative_territories rt ON rt.representative_id=u.id WHERE u.id=$1 AND rt.territory_id=$2 AND u.role='representative' AND u.active=true FOR SHARE OF u,rt", [representativeId,territoryId])).rowCount) {
-      await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Representative is not active and assigned to territory' });
+    if (representativeId !== null && !(await client.query("SELECT 1 FROM users u JOIN representative_territories rt ON rt.representative_id=u.id JOIN representative_onboarding o ON o.representative_id=u.id WHERE u.id=$1 AND rt.territory_id=$2 AND u.role='representative' AND u.active=true AND o.approval_status='approved' FOR SHARE OF u,rt,o", [representativeId,territoryId])).rowCount) {
+      await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Representative must have approved onboarding, be active, and belong to the territory' });
     }
     const changed = old.territory_id !== territoryId || old.primary_representative_id !== representativeId;
     if (changed) {
