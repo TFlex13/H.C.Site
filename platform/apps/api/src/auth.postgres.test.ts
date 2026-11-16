@@ -65,7 +65,7 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     const second = await login('admin@test.invalid', password);
     assert.equal(second.statusCode, 200);
     const expiredToken = (second.json() as { token: string }).token;
-    await pool.query("UPDATE sessions SET expires_at=now()-interval '1 minute' WHERE token_hash=$1", [tokenHash(expiredInvitationToken)]);
+    await pool.query("UPDATE sessions SET expires_at=now()-interval '1 minute' WHERE token_hash=$1", [tokenHash(expiredToken)]);
     assert.equal((await app.inject({ method: 'GET', url: '/auth/me', headers: { authorization: 'Bearer ' + expiredToken } })).statusCode, 401);
     const rep = await login('rep@test.invalid', password);
     assert.equal(rep.statusCode, 200);
@@ -104,7 +104,7 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     const expired = await invite('expired@test.invalid');
     assert.equal(expired.statusCode, 201);
     const expiredInvitationToken = (expired.json() as { invitationToken: string }).invitationToken;
-    await pool.query("UPDATE invitations SET expires_at=now()-interval '1 minute' WHERE token_hash=$1", [tokenHash(expiredToken)]);
+    await pool.query("UPDATE invitations SET expires_at=now()-interval '1 minute' WHERE token_hash=$1", [tokenHash(expiredInvitationToken)]);
     assert.equal((await accept(expiredInvitationToken)).statusCode, 400, 'expired token must be rejected');
     assert.equal((await pool.query('SELECT 1 FROM users WHERE email=$1', ['expired@test.invalid'])).rowCount, 0);
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM auth_audit_events WHERE action=$1', ['invitation_accepted'])).rows[0].count, 1);
