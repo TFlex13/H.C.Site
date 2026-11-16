@@ -76,6 +76,68 @@ app.post('/auth/logout', async (request, reply) => {
   await pool.query('DELETE FROM sessions WHERE token_hash=$1', [tokenHash(token)]);
   return { status: 'ok' };
 });
+// Self-service onboarding stores contact details only. Sensitive document uploads
+// require a separate vetted private-storage integration.
+const onboardingFields = 'representative_id AS "representativeId",legal_first_name AS "legalFirstName",legal_last_name AS "legalLastName",mobile_phone AS "mobilePhone",alternate_phone AS "alternatePhone",address_line1 AS "addressLine1",address_line2 AS "addressLine2",city,state_region AS "stateRegion",postal_code AS "postalCode",country_code AS "countryCode",preferred_contact_method AS "preferredContactMethod",tax_document_status AS "taxDocumentStatus",identity_document_status AS "identityDocumentStatus",contractor_agreement_status AS "contractorAgreementStatus",approval_status AS "approvalStatus",reviewed_at AS "reviewedAt"';
+const onboardingBody = { body: { type: 'object', additionalProperties: false, required: ['legalFirstName','legalLastName','mobilePhone','addressLine1','city','stateRegion','postalCode','preferredContactMethod'], properties: {
+  legalFirstName: { type: 'string', minLength: 1, maxLength: 120 },
+  legalLastName: { type: 'string', minLength: 1, maxLength: 120 },
+  mobilePhone: { type: 'string', minLength: 7, maxLength: 30 },
+  alternatePhone: { type: ['string','null'], maxLength: 30 },
+  addressLine1: { type: 'string', minLength: 1, maxLength: 200 },
+  addressLine2: { type: ['string','null'], maxLength: 200 },
+  city: { type: 'string', minLength: 1, maxLength: 120 },
+  stateRegion: { type: 'string', minLength: 1, maxLength: 120 },
+  postalCode: { type: 'string', minLength: 1, maxLength: 20 },
+  preferredContactMethod: { type: 'string', enum: ['email','mobile','phone'] }
+} } } as const;
+app.get('/representative/onboarding', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'representative' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const found = await pool.query('SELECT '+onboardingFields+' FROM representative_onboarding WHERE representative_id=$1', [user.id]);
+  if (!found.rowCount) return reply.code(404).send({ error: 'Onboarding record missing' });
+  return { profile: found.rows[0], email: user.email };
+});
+app.put('/representative/onboarding', { schema: onboardingBody }, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'representative' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const v = request.body as Record<string,string|null|undefined>;
+  for (const key of ['legalFirstName','legalLastName','mobilePhone','addressLine1','city','stateRegion','postalCode'])
+    if (!v[key]?.trim()) return reply.code(400).send({ error: key+' required' });
+  const values = ['legalFirstName','legalLastName','mobilePhone','alternatePhone','addressLine1','addressLine2','city','stateRegion','postalCode'].map(key => v[key]?.trim() || null);
+  const updated = await pool.query(
+    "UPDATE representative_onboarding SET legal_first_name=$2,legal_last_name=$3,mobile_phone=$4,alternate_phone=$5,address_line1=$6,address_line2=$7,city=$8,state_region=$9,postal_code=$10,preferred_contact_method=$11,approval_status='pending',reviewed_by=NULL,reviewed_at=NULL,updated_at=now() WHERE representative_id=$1 AND approval_status IN ('pending','rejected') RETURNING "+onboardingFields,
+    [user.id,...values,v.preferredContactMethod]);
+  if (!updated.rowCount) return reply.code(409).send({ error: 'Profile is locked during approval or suspension; contact administrator' });
+  return { profile: updated.rows[0] };
+});
+app.get('/admin/representative-onboarding', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const found = await pool.query("SELECT "+onboardingFields+",u.display_name AS \"displayName\",u.email FROM representative_onboarding o JOIN users u ON u.id=o.representative_id ORDER BY u.display_name LIMIT 200");
+  return { representatives: found.rows };
+});
+app.patch('/admin/representative-onboarding/:id/review', { schema: { body: { type: 'object', additionalProperties: false, required: ['status','reason'], properties: { status: { type: 'string', enum: ['approved','rejected','suspended','pending'] }, reason: { type: 'string', minLength: 5, maxLength: 1000 } } } } }, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const { id } = request.params as { id: string };
+  const { status, reason } = request.body as { status: string; reason: string };
+  if (!uuid(id) || reason.trim().length < 5) return reply.code(400).send({ error: 'Invalid review' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const existing = await client.query('SELECT approval_status FROM representative_onboarding WHERE representative_id=$1 FOR UPDATE', [id]);
+    if (!existing.rowCount) { await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Representative not found' }); }
+    if (status==='approved') {
+      const eligible = await client.query("SELECT 1 FROM representative_onboarding WHERE representative_id=$1 AND tax_document_status='verified' AND identity_document_status='verified' AND contractor_agreement_status='verified' AND legal_first_name IS NOT NULL AND legal_last_name IS NOT NULL AND mobile_phone IS NOT NULL AND address_line1 IS NOT NULL AND city IS NOT NULL AND state_region IS NOT NULL AND postal_code IS NOT NULL", [id]);
+      if (!eligible.rowCount) { await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Required profile and verified documents must be complete before approval' }); }
+    }
+    await client.query('UPDATE representative_onboarding SET approval_status=$2,reviewed_by=$3,reviewed_at=now(),review_notes=$4,updated_at=now() WHERE representative_id=$1', [id,status,user.id,reason.trim()]);
+    await client.query('INSERT INTO representative_onboarding_reviews(representative_id,reviewed_by,old_status,new_status,reason) VALUES($1,$2,$3,$4,$5)', [id,user.id,existing.rows[0].approval_status,status,reason.trim()]);
+    await client.query('COMMIT');
+    return { representativeId:id, status };
+  } catch (err) { await client.query('ROLLBACK'); throw err; } finally { client.release(); }
+});
 // Administrative representative directory. Never expose password hashes or session tokens.
 app.get('/admin/representatives', async (request, reply) => {
   const user = await actor(request.headers.authorization);
