@@ -423,6 +423,102 @@ app.get('/admin/orders/:id/decisions', async (request, reply) => {
   const result = await pool.query('SELECT id,order_id AS "orderId",previous_status AS "previousStatus",new_status AS "newStatus",decided_by AS "decidedBy",reason,decided_at AS "decidedAt" FROM commission_order_decisions WHERE order_id=$1 ORDER BY decided_at,id', [id]);
   return { decisions: result.rows };
 });
+// Receipt is a full settlement of the vendor service fee for one approved order.
+// It does not imply the representative has been paid.
+const receiptColumns = 'r.id,r.order_id AS "orderId",r.vendor_id AS "vendorId",r.payment_reference AS "paymentReference",r.amount::text,r.currency_code AS "currencyCode",r.received_on::text AS "receivedOn",r.recorded_by AS "recordedBy",r.recorded_at AS "recordedAt"';
+app.post('/admin/orders/:id/vendor-receipt', { schema: { body: { type: 'object', additionalProperties: false, required: ['paymentReference','receivedOn'], properties: {
+  paymentReference: { type: 'string', minLength: 1, maxLength: 200 },
+  receivedOn: { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'representative' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query('SELECT ' + orderColumns + ' FROM commission_orders WHERE representative_id=$1 ORDER BY recorded_at DESC,id DESC LIMIT 100', [user.id]);
+  return { orders: result.rows };
+});
+
+app.post('/admin/invitations', { schema: { body: { type: 'object', additionalProperties: false, required: ['email'], properties: { email: { type: 'string', maxLength: 254 } } } } }, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const normalized = email((request.body as { email: string }).email);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) return reply.code(400).send({ error: 'Invalid email' });
+  if ((await pool.query('SELECT 1 FROM users WHERE email=$1', [normalized])).rowCount) return reply.code(409).send({ error: 'Account already exists' });
+  const token = newToken();
+  await pool.query("INSERT INTO invitations(email,token_hash,invited_by,expires_at) VALUES($1,$2,$3,now()+interval '48 hours')", [normalized, tokenHash(token), user.id]);
+  await pool.query('INSERT INTO auth_audit_events(actor_id,action,subject_email) VALUES($1,$2,$3)', [user.id,'invitation_created',normalized]);
+  // Local-development handoff only. Replace with out-of-band email delivery before deployment.
+  return reply.code(201).send({ email: normalized, invitationToken: token, expiresInHours: 48, delivery: 'manual-local-development' });
+});
+app.post('/auth/accept-invitation', { schema: { body: { type: 'object', additionalProperties: false, required: ['token','displayName','password'], properties: { token: { type: 'string', minLength: 43, maxLength: 43 }, displayName: { type: 'string', minLength: 1, maxLength: 120 }, password: { type: 'string', minLength: 12, maxLength: 1024 } } } } }, async (request, reply) => {
+  if (!pool) return reply.code(503).send({ error: 'Database unavailable' });
+  const body = request.body as { token: string; displayName: string; password: string };
+  if (!body.displayName.trim()) return reply.code(400).send({ error: 'Display name required' });
+  const passwordHash = await hashPassword(body.password);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const found = await client.query('SELECT id,email FROM invitations WHERE token_hash=$1 AND accepted_at IS NULL AND expires_at>now() FOR UPDATE', [tokenHash(body.token)]);
+    if (!found.rowCount) { await client.query('ROLLBACK'); return reply.code(400).send({ error: 'Invalid or expired invitation' }); }
+    const invitation = found.rows[0];
+    const created = await client.query("INSERT INTO users(email,display_name,password_hash,role) VALUES($1,$2,$3,'representative') ON CONFLICT (email) DO NOTHING RETURNING id", [invitation.email,body.displayName.trim(),passwordHash]);
+    if (!created.rowCount) { await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Account already exists' }); }
+    await client.query('UPDATE invitations SET accepted_at=now() WHERE id=$1', [invitation.id]);
+    await client.query('INSERT INTO auth_audit_events(actor_id,action,subject_email) VALUES($1,$2,$3)', [created.rows[0].id,'invitation_accepted',invitation.email]);
+    await client.query('COMMIT');
+    return reply.code(201).send({ status: 'created' });
+  } catch (err) { await client.query('ROLLBACK'); throw err; }
+  finally { client.release(); }
+});
+return app;
+}
+ }
+} } } }, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const { id } = request.params as { id: string };
+  const { paymentReference, receivedOn } = request.body as { paymentReference: string; receivedOn: string };
+  const date = new Date(receivedOn + 'T00:00:00.000Z');
+  if (!uuid(id) || !paymentReference.trim() || Number.isNaN(date.getTime()) || date.toISOString().slice(0,10) !== receivedOn)
+    return reply.code(400).send({ error: 'Invalid order, payment reference or calendar date' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const order = await client.query('SELECT id,vendor_id,service_fee_amount::text AS amount,status FROM commission_orders WHERE id=$1 FOR UPDATE', [id]);
+    if (!order.rowCount) { await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Order not found' }); }
+    if (order.rows[0].status !== 'approved') { await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Only approved orders can be reconciled' }); }
+    const receipt = await client.query('INSERT INTO commission_vendor_receipts(order_id,vendor_id,payment_reference,amount,received_on,recorded_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id',
+      [id,order.rows[0].vendor_id,paymentReference.trim(),order.rows[0].amount,receivedOn,user.id]);
+    const result = await client.query('SELECT ' + receiptColumns + ' FROM commission_vendor_receipts r WHERE r.id=$1', [receipt.rows[0].id]);
+    await client.query('COMMIT');
+    return reply.code(201).send({ receipt: result.rows[0], representativePaid: false });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    if ((err as { code?: string }).code === '23505') return reply.code(409).send({ error: 'Vendor receipt already recorded for order' });
+    throw err;
+  } finally { client.release(); }
+});
+app.get('/admin/vendor-receipts', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query('SELECT ' + receiptColumns + ' FROM commission_vendor_receipts r ORDER BY r.recorded_at DESC,r.id DESC LIMIT 100');
+  return { receipts: result.rows };
+});
+app.get('/admin/commissions/reconciliation', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query(`
+    SELECT o.vendor_id AS "vendorId",
+      count(*)::int AS "approvedOrders",
+      count(r.id)::int AS "receivedOrders",
+      coalesce(sum(o.service_fee_amount),0)::text AS "approvedFees",
+      coalesce(sum(o.service_fee_amount) FILTER (WHERE r.id IS NULL),0)::text AS "outstandingFees",
+      coalesce(sum(r.amount),0)::text AS "receivedFees",
+      coalesce(sum(o.representative_amount) FILTER (WHERE r.id IS NOT NULL),0)::text AS "representativeLiabilityOnReceivedOrders"
+    FROM commission_orders o
+    LEFT JOIN commission_vendor_receipts r ON r.order_id=o.id
+    WHERE o.status='approved'
+    GROUP BY o.vendor_id ORDER BY o.vendor_id
+  `);
+  return { vendors: result.rows, representativePayoutsImplemented: false };
+});
 app.get('/representative/orders', async (request, reply) => {
   const user = await actor(request.headers.authorization);
   if (!user || user.role !== 'representative' || !pool) return reply.code(403).send({ error: 'Forbidden' });
