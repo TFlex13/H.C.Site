@@ -56,7 +56,7 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
         store_id uuid NOT NULL REFERENCES "${schema}".stores(id),
         previous_territory_id uuid, new_territory_id uuid,
         previous_representative_id uuid, new_representative_id uuid,
-        changed_by uuid, changed_at timestamptz NOT NULL DEFAULT now()
+        changed_by uuid, reason text NOT NULL, effective_at timestamptz NOT NULL DEFAULT now(), changed_at timestamptz NOT NULL DEFAULT now()
       );
       CREATE TABLE "${schema}".sessions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES "${schema}".users(id),
@@ -194,10 +194,10 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     assert.equal(newStore.statusCode, 201);
     const storeId = (newStore.json() as { store: { id: string } }).store.id;
     const storeAssignUrl = '/admin/stores/' + storeId + '/assignment';
-    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: repHeaders, payload: { territoryId, representativeId: repId } })).statusCode, 403);
-    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId, representativeId: repId } })).statusCode, 409, 'unassigned representative cannot own store');
-    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId, representativeId: invitedRepId } })).statusCode, 200);
-    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId, representativeId: invitedRepId } })).json().changed, false);
+    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: repHeaders, payload: { territoryId, representativeId: repId, reason: 'Initial store assignment' } })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId, representativeId: repId, reason: 'Initial store assignment' } })).statusCode, 409, 'unassigned representative cannot own store');
+    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId, representativeId: invitedRepId, reason: 'Assigned for store servicing' } })).statusCode, 200);
+    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId, representativeId: invitedRepId, reason: 'Assigned for store servicing' } })).json().changed, false);
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM store_assignment_events WHERE store_id=$1', [storeId])).rows[0].count, 1);
     assert.equal((await app.inject({ method: 'GET', url: '/representative/stores', headers: repHeaders })).json().stores.length, 0);
     assert.equal((await app.inject({ method: 'GET', url: '/admin/stores', headers: repHeaders })).statusCode, 403);
@@ -205,8 +205,11 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     const history = await app.inject({ method: 'GET', url: '/admin/stores/' + storeId + '/assignment-history', headers: adminHeaders });
     assert.equal(history.statusCode, 200);
     assert.equal(history.json().events.length, 1);
+    assert.equal(history.json().events[0].reason, 'Assigned for store servicing');
+    assert.ok(history.json().events[0].effectiveAt);
+    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId: null, representativeId: null } })).statusCode, 400, 'reason is required');
     assert.equal((await app.inject({ method: 'GET', url: '/admin/stores/' + storeId + '/assignment-history', headers: repHeaders })).statusCode, 403);
-    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId: null, representativeId: null } })).statusCode, 200);
+    assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId: null, representativeId: null, reason: 'Representative departed company' } })).statusCode, 200);
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM store_assignment_events WHERE store_id=$1', [storeId])).rows[0].count, 2);
 
     // Only administrators may list or suspend representatives.
