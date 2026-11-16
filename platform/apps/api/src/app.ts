@@ -123,6 +123,61 @@ app.put('/representative/profile', {
   );
   return { profile: { id: user.id, email: user.email, displayName: user.display_name, phone: result.rows[0].phone, companyName: result.rows[0].company_name } };
 });
+// Shared territories: multiple representatives may be assigned to one territory.
+const uuid = (value: string) => /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(value);
+const territoryBody = { type: 'object', additionalProperties: false, required: ['name'],
+  properties: { name: { type: 'string', minLength: 1, maxLength: 120 },
+    description: { anyOf: [{ type: 'string', maxLength: 1000 }, { type: 'null' }] } } } as const;
+app.get('/admin/territories', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query('SELECT t.id,t.name,t.description,t.active,COALESCE(json_agg(json_build_object(\'id\',u.id,\'email\',u.email,\'displayName\',u.display_name) ORDER BY u.email) FILTER (WHERE u.id IS NOT NULL),\'[]\'::json) AS representatives FROM territories t LEFT JOIN representative_territories rt ON rt.territory_id=t.id LEFT JOIN users u ON u.id=rt.representative_id GROUP BY t.id ORDER BY t.name,t.id');
+  return { territories: result.rows };
+});
+app.post('/admin/territories', { schema: { body: territoryBody } }, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const body = request.body as { name: string; description?: string | null };
+  const name = body.name.trim();
+  if (!name) return reply.code(400).send({ error: 'Territory name required' });
+  const description = body.description?.trim() || null;
+  const result = await pool.query('INSERT INTO territories(name,description) VALUES($1,$2) ON CONFLICT(name) DO NOTHING RETURNING id,name,description,active', [name,description]);
+  if (!result.rowCount) return reply.code(409).send({ error: 'Territory already exists' });
+  return reply.code(201).send({ territory: result.rows[0] });
+});
+app.put('/admin/territories/:territoryId/representatives/:representativeId', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const { territoryId, representativeId } = request.params as { territoryId: string; representativeId: string };
+  if (!uuid(territoryId) || !uuid(representativeId)) return reply.code(400).send({ error: 'Invalid ID' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const territory = await client.query('SELECT id FROM territories WHERE id=$1 AND active=true FOR SHARE', [territoryId]);
+    if (!territory.rowCount) { await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Active territory not found' }); }
+    const rep = await client.query("SELECT id FROM users WHERE id=$1 AND role='representative' AND active=true FOR SHARE", [representativeId]);
+    if (!rep.rowCount) { await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Active representative not found' }); }
+    const added = await client.query('INSERT INTO representative_territories(representative_id,territory_id,assigned_by) VALUES($1,$2,$3) ON CONFLICT DO NOTHING RETURNING representative_id', [representativeId,territoryId,user.id]);
+    await client.query('COMMIT');
+    return reply.code(added.rowCount ? 201 : 200).send({ territoryId, representativeId, assigned: true, created: Boolean(added.rowCount) });
+  } catch (err) { await client.query('ROLLBACK'); throw err; }
+  finally { client.release(); }
+});
+app.delete('/admin/territories/:territoryId/representatives/:representativeId', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const { territoryId, representativeId } = request.params as { territoryId: string; representativeId: string };
+  if (!uuid(territoryId) || !uuid(representativeId)) return reply.code(400).send({ error: 'Invalid ID' });
+  const removed = await pool.query('DELETE FROM representative_territories WHERE territory_id=$1 AND representative_id=$2', [territoryId,representativeId]);
+  return { territoryId, representativeId, assigned: false, removed: Boolean(removed.rowCount) };
+});
+app.get('/representative/territories', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user) return reply.code(401).send({ error: 'Unauthorized' });
+  if (user.role !== 'representative' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query('SELECT t.id,t.name,t.description FROM territories t JOIN representative_territories rt ON rt.territory_id=t.id WHERE rt.representative_id=$1 AND t.active=true ORDER BY t.name,t.id', [user.id]);
+  return { territories: result.rows };
+});
 app.post('/admin/invitations', { schema: { body: { type: 'object', additionalProperties: false, required: ['email'], properties: { email: { type: 'string', maxLength: 254 } } } } }, async (request, reply) => {
   const user = await actor(request.headers.authorization);
   if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
