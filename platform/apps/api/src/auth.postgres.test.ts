@@ -107,6 +107,40 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
         CHECK (highline_amount + representative_amount = service_fee_amount),
         CHECK (status IN ('pending','approved','voided'))
       );
+      CREATE TABLE "${schema}".commission_order_decisions (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        order_id uuid NOT NULL UNIQUE REFERENCES "${schema}".commission_orders(id),
+        previous_status text NOT NULL CHECK (previous_status='pending'),
+        new_status text NOT NULL CHECK (new_status IN ('approved','voided')),
+        decided_by uuid NOT NULL REFERENCES "${schema}".users(id),
+        reason text NOT NULL CHECK (length(trim(reason)) BETWEEN 5 AND 1000),
+        decided_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE FUNCTION "${schema}".guard_commission_order_snapshot()
+      RETURNS trigger LANGUAGE plpgsql AS $function$
+      DECLARE decision_actor uuid; decision_reason text;
+      BEGIN
+        IF TG_OP='DELETE' THEN RAISE EXCEPTION 'Commission orders cannot be deleted'; END IF;
+        IF (to_jsonb(NEW)-'status') IS DISTINCT FROM (to_jsonb(OLD)-'status') THEN
+          RAISE EXCEPTION 'Commission order financial snapshot is immutable';
+        END IF;
+        IF NEW.status=OLD.status THEN RETURN NEW; END IF;
+        IF OLD.status<>'pending' OR NEW.status NOT IN ('approved','voided') THEN
+          RAISE EXCEPTION 'Invalid order decision';
+        END IF;
+        decision_actor := nullif(current_setting('highline.decision_actor',true),'')::uuid;
+        decision_reason := nullif(current_setting('highline.decision_reason',true),'');
+        IF decision_actor IS NULL OR decision_reason IS NULL OR length(trim(decision_reason)) NOT BETWEEN 5 AND 1000 THEN
+          RAISE EXCEPTION 'Decision requires actor and reason';
+        END IF;
+        INSERT INTO "${schema}".commission_order_decisions(order_id,previous_status,new_status,decided_by,reason)
+        VALUES(OLD.id,OLD.status,NEW.status,decision_actor,trim(decision_reason));
+        RETURN NEW;
+      END;
+      $function$;
+      CREATE TRIGGER commission_order_immutable_guard BEFORE UPDATE OR DELETE
+      ON "${schema}".commission_orders FOR EACH ROW
+      EXECUTE FUNCTION "${schema}".guard_commission_order_snapshot();
       CREATE TABLE "${schema}".sessions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES "${schema}".users(id),
         token_hash text NOT NULL UNIQUE, expires_at timestamptz NOT NULL
@@ -309,6 +343,19 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     assert.equal(Number(savedOrder.highlineAmount), 1.6);
     assert.equal(Number(savedOrder.representativeAmount), 4);
     assert.equal(savedOrder.status, 'pending');
+    const decisionUrl = '/admin/orders/' + savedOrder.id + '/decision';
+    assert.equal((await app.inject({ method: 'POST', url: decisionUrl, headers: repHeaders, payload: { decision: 'approved', reason: 'Verified qualifying sale' } })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'POST', url: decisionUrl, headers: adminHeaders, payload: { decision: 'approved', reason: 'no' } })).statusCode, 400);
+    const approved = await app.inject({ method: 'POST', url: decisionUrl, headers: adminHeaders, payload: { decision: 'approved', reason: 'Verified qualifying sale' } });
+    assert.equal(approved.statusCode, 200, approved.body);
+    assert.equal(approved.json().order.status, 'approved');
+    assert.equal(approved.json().decision.decidedBy, adminId);
+    assert.equal((await app.inject({ method: 'POST', url: decisionUrl, headers: adminHeaders, payload: { decision: 'voided', reason: 'Attempt to reverse decision' } })).statusCode, 409);
+    assert.equal((await app.inject({ method: 'GET', url: '/admin/orders/' + savedOrder.id + '/decisions', headers: repHeaders })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'GET', url: '/admin/orders/' + savedOrder.id + '/decisions', headers: adminHeaders })).json().decisions.length, 1);
+    await assert.rejects(pool.query("UPDATE commission_orders SET representative_amount=0 WHERE id=$1", [savedOrder.id]));
+    await assert.rejects(pool.query("DELETE FROM commission_orders WHERE id=$1", [savedOrder.id]));
+
     assert.equal((await app.inject({ method: 'POST', url: orderUrl, headers: adminHeaders, payload: validOrder })).statusCode, 409);
     assert.equal((await app.inject({ method: 'GET', url: orderUrl, headers: repHeaders })).statusCode, 403);
     assert.equal((await app.inject({ method: 'GET', url: orderUrl, headers: adminHeaders })).json().orders.length, 1);
