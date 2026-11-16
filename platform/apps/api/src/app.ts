@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
-import { randomBytes, createCipheriv } from 'node:crypto';
-import { mkdir, writeFile, unlink } from 'node:fs/promises';
+import { randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
+import { mkdir, writeFile, unlink, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { financeDashboardHtml } from './finance-dashboard.js';
 import { invitationPageHtml } from './invitation-page.js';
@@ -207,6 +207,64 @@ app.get('/admin/representative-onboarding/:id/documents', async (request, reply)
  if (!rep.rowCount) return reply.code(404).send({error:'Representative not found'});
  const docs=await pool.query('SELECT document_type AS "documentType",original_filename AS "filename",mime_type AS "mimeType",byte_size AS "byteSize",review_status AS "status",submitted_at AS "submittedAt",reviewed_at AS "reviewedAt" FROM representative_documents WHERE representative_id=$1 ORDER BY document_type',[id]);
  return {submittedAt:rep.rows[0].submitted_at,approvalStatus:rep.rows[0].approval_status,documents:docs.rows};
+});
+// Sensitive bytes are available only to authenticated administrators, never by public URL.
+app.get('/admin/representative-onboarding/:id/documents/:type/content', async (request, reply) => {
+ const user=await actor(request.headers.authorization);
+ if (!user || user.role!=='admin' || !pool) return reply.code(403).send({error:'Forbidden'});
+ const {id,type}=request.params as {id:string;type:string};
+ if (!uuid(id) || !documentTypes.some(t=>t===type)) return reply.code(400).send({error:'Invalid document'});
+ if (!documentKey || !documentRoot) return reply.code(503).send({error:'Encrypted storage not configured for this server'});
+ const result=await pool.query('SELECT id,storage_key,mime_type,byte_size FROM representative_documents WHERE representative_id=$1 AND document_type=$2',[id,type]);
+ if (!result.rowCount) return reply.code(404).send({error:'Document not found'});
+ const d=result.rows[0];
+ if (!/^[0-9a-f]{48}$/.test(d.storage_key)) return reply.code(500).send({error:'Invalid storage record'});
+ let encrypted:Buffer;
+ try { encrypted=await readFile(join(documentRoot,d.storage_key)); }
+ catch { return reply.code(503).send({error:'Encrypted file unavailable; verify the original storage directory and encryption key'}); }
+ if (encrypted.length<29 || encrypted.length>10*1024*1024+28) return reply.code(422).send({error:'Encrypted document invalid'});
+ let clear:Buffer;
+ try {
+  const decipher=createDecipheriv('aes-256-gcm',documentKey,encrypted.subarray(0,12));
+  decipher.setAuthTag(encrypted.subarray(encrypted.length-16));
+  clear=Buffer.concat([decipher.update(encrypted.subarray(12,encrypted.length-16)),decipher.final()]);
+ } catch { return reply.code(422).send({error:'Document decryption failed; verify original encryption key'}); }
+ if (clear.length!==d.byte_size) return reply.code(422).send({error:'Document integrity mismatch'});
+ await pool.query("INSERT INTO representative_document_access_audit(representative_id,document_type,document_id,administrator_id,action) VALUES($1,$2,$3,$4,'view')",[id,type,d.id,user.id]);
+ reply.header('Cache-Control','no-store, no-cache, must-revalidate, private');
+ reply.header('Pragma','no-cache');
+ reply.header('X-Content-Type-Options','nosniff');
+ reply.header('Content-Security-Policy',"default-src 'none'; sandbox");
+ reply.header('Content-Disposition','inline');
+ return reply.type(d.mime_type).send(clear);
+});
+app.patch('/admin/representative-onboarding/:id/documents/:type/review', {schema:{body:{type:'object',additionalProperties:false,required:['status','reason'],properties:{status:{type:'string',enum:['verified','rejected']},reason:{type:'string',minLength:5,maxLength:1000}}}}}, async (request,reply)=>{
+ const user=await actor(request.headers.authorization);
+ if (!user || user.role!=='admin' || !pool) return reply.code(403).send({error:'Forbidden'});
+ const {id,type}=request.params as {id:string;type:string};
+ const {status,reason}=request.body as {status:'verified'|'rejected';reason:string};
+ if(!uuid(id)||!documentTypes.some(t=>t===type)||reason.trim().length<5)return reply.code(400).send({error:'Invalid review'});
+ const client=await pool.connect();
+ try {
+  await client.query('BEGIN');
+  const onboarding=await client.query('SELECT approval_status,submitted_at FROM representative_onboarding WHERE representative_id=$1 FOR UPDATE',[id]);
+  if(!onboarding.rowCount){await client.query('ROLLBACK');return reply.code(404).send({error:'Representative not found'})}
+  if(!onboarding.rows[0].submitted_at||onboarding.rows[0].approval_status!=='pending'){await client.query('ROLLBACK');return reply.code(409).send({error:'Only submitted, pending onboarding can be reviewed'})}
+  const doc=await client.query('SELECT id,review_status FROM representative_documents WHERE representative_id=$1 AND document_type=$2 FOR UPDATE',[id,type]);
+  if(!doc.rowCount){await client.query('ROLLBACK');return reply.code(404).send({error:'Document not found'})}
+  if(doc.rows[0].review_status!=='pending_review'){await client.query('ROLLBACK');return reply.code(409).send({error:'Document already reviewed'})}
+  const seen=await client.query("SELECT 1 FROM representative_document_access_audit WHERE document_id=$1 AND administrator_id=$2 AND action='view' AND occurred_at>now()-interval '15 minutes' LIMIT 1",[doc.rows[0].id,user.id]);
+  if(!seen.rowCount){await client.query('ROLLBACK');return reply.code(409).send({error:'Open and inspect this document before reviewing it'})}
+  await client.query('UPDATE representative_documents SET review_status=$3,reviewed_at=now(),reviewed_by=$4 WHERE representative_id=$1 AND document_type=$2',[id,type,status,user.id]);
+  await client.query('INSERT INTO representative_document_access_audit(representative_id,document_type,document_id,administrator_id,action,reason) VALUES($1,$2,$3,$4,$5,$6)',[id,type,doc.rows[0].id,user.id,status,reason.trim()]);
+  const rows=await client.query('SELECT document_type,review_status FROM representative_documents WHERE representative_id=$1',[id]);
+  const state=new Map(rows.rows.map((d:{document_type:string;review_status:string})=>[d.document_type,d.review_status]));
+  const identity=state.get('id_front')==='verified'&&state.get('id_back')==='verified'?'verified':state.get('id_front')==='rejected'||state.get('id_back')==='rejected'?'rejected':'pending_review';
+  const tax=state.get('w9')==='verified'?'verified':state.get('w9')==='rejected'?'rejected':'pending_review';
+  await client.query('UPDATE representative_onboarding SET identity_document_status=$2,tax_document_status=$3,updated_at=now() WHERE representative_id=$1',[id,identity,tax]);
+  await client.query('COMMIT');
+  return {documentType:type,status,identityStatus:identity,taxStatus:tax};
+ }catch(err){await client.query('ROLLBACK');throw err}finally{client.release()}
 });
 app.patch('/admin/representative-onboarding/:id/review', { schema: { body: { type: 'object', additionalProperties: false, required: ['status','reason'], properties: { status: { type: 'string', enum: ['approved','rejected','suspended','pending'] }, reason: { type: 'string', minLength: 5, maxLength: 1000 } } } } }, async (request, reply) => {
   const user = await actor(request.headers.authorization);
