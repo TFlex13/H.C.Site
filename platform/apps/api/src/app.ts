@@ -328,6 +328,76 @@ app.post('/admin/vendors/:id/agreements', { schema: { body: { type: 'object', ad
   finally { client.release(); }
 });
 
+
+const pricePattern = /^(?:0|[1-9]\\d{0,9})(?:\\.\\d{1,4})?$/;
+const priceUnits = (value: string) => pricePattern.test(value)
+  ? BigInt(value.split('.')[0]) * 10000n + BigInt((value.split('.')[1] ?? '').padEnd(4,'0')) : null;
+const money = (value: bigint) => (value / 10000n).toString() + '.' + (value % 10000n).toString().padStart(4,'0');
+const percentAmount = (profitUnits: bigint, percent: string) => {
+  const units = percentUnits(percent);
+  if (units === null) throw new Error('Invalid stored commission percentage');
+  return (profitUnits * BigInt(units) + 500000n) / 1000000n;
+};
+const orderColumns = 'id,external_order_reference AS "externalOrderReference",vendor_id AS "vendorId",store_id AS "storeId",representative_id AS "representativeId",agreement_id AS "agreementId",currency_code AS "currencyCode",quantity,unit_wholesale_price::text AS "unitWholesalePrice",unit_vendor_cost::text AS "unitVendorCost",gross_profit::text AS "grossProfit",service_fee_percent::text AS "serviceFeePercent",highline_percent::text AS "highlinePercent",representative_percent::text AS "representativePercent",service_fee_amount::text AS "serviceFeeAmount",highline_amount::text AS "highlineAmount",representative_amount::text AS "representativeAmount",status,recorded_by AS "recordedBy",recorded_at AS "recordedAt"';
+app.post('/admin/orders', { schema: { body: { type: 'object', additionalProperties: false, required: ['externalOrderReference','vendorId','storeId','quantity','unitWholesalePrice','unitVendorCost'], properties: {
+  externalOrderReference: { type: 'string', minLength: 1, maxLength: 200 },
+  vendorId: { type: 'string', minLength: 36, maxLength: 36 },
+  storeId: { type: 'string', minLength: 36, maxLength: 36 },
+  quantity: { type: 'integer', minimum: 1, maximum: 1000000 },
+  unitWholesalePrice: { type: 'string', minLength: 1, maxLength: 16 },
+  unitVendorCost: { type: 'string', minLength: 1, maxLength: 16 }
+} } } }, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const body = request.body as { externalOrderReference: string; vendorId: string; storeId: string; quantity: number; unitWholesalePrice: string; unitVendorCost: string };
+  const reference = body.externalOrderReference.trim();
+  const wholesale = priceUnits(body.unitWholesalePrice), cost = priceUnits(body.unitVendorCost);
+  if (!reference || !uuid(body.vendorId) || !uuid(body.storeId) || wholesale === null || cost === null || wholesale < cost)
+    return reply.code(400).send({ error: 'Invalid order reference, IDs or unit prices' });
+  const profit = (wholesale - cost) * BigInt(body.quantity);
+  // Keep amounts within numeric(16,4); the database remains the final authority.
+  if (profit > 9999999999999999n) return reply.code(400).send({ error: 'Order amount exceeds supported limit' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Lock the store to serialize order attribution against administrative transfers.
+    const store = await client.query('SELECT s.primary_representative_id FROM stores s WHERE s.id=$1 AND s.active=true FOR UPDATE OF s', [body.storeId]);
+    if (!store.rowCount) { await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Active store not found' }); }
+    const repId = store.rows[0].primary_representative_id as string | null;
+    if (!repId) { await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Store has no assigned representative' }); }
+    const rep = await client.query("SELECT 1 FROM users WHERE id=$1 AND role='representative' AND active=true FOR SHARE", [repId]);
+    if (!rep.rowCount) { await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Store representative is inactive' }); }
+    const vendor = await client.query('SELECT 1 FROM vendors WHERE id=$1 AND active=true FOR SHARE', [body.vendorId]);
+    if (!vendor.rowCount) { await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Active vendor not found' }); }
+    const agreement = await client.query('SELECT id,service_fee_percent::text,highline_percent::text,representative_percent::text FROM vendor_commission_agreements WHERE vendor_id=$1 AND effective_from<=clock_timestamp() AND (effective_until IS NULL OR effective_until>clock_timestamp()) ORDER BY effective_from DESC LIMIT 1', [body.vendorId]);
+    if (!agreement.rowCount) { await client.query('ROLLBACK'); return reply.code(409).send({ error: 'No effective vendor commission agreement' }); }
+    const rate = agreement.rows[0];
+    const total = percentAmount(profit,rate.service_fee_percent);
+    const representative = percentAmount(profit,rate.representative_percent);
+    const highline = total - representative;
+    const result = await client.query('INSERT INTO commission_orders(external_order_reference,vendor_id,store_id,representative_id,agreement_id,quantity,unit_wholesale_price,unit_vendor_cost,gross_profit,service_fee_percent,highline_percent,representative_percent,service_fee_amount,highline_amount,representative_amount,recorded_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING ' + orderColumns,
+      [reference,body.vendorId,body.storeId,repId,rate.id,body.quantity,money(wholesale),money(cost),money(profit),rate.service_fee_percent,rate.highline_percent,rate.representative_percent,money(total),money(highline),money(representative),user.id]);
+    await client.query('COMMIT');
+    return reply.code(201).send({ order: result.rows[0] });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    if ((err as { code?: string }).code === '23505') return reply.code(409).send({ error: 'Order reference already recorded for vendor' });
+    throw err;
+  } finally { client.release(); }
+});
+app.get('/admin/orders', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query('SELECT ' + orderColumns + ' FROM commission_orders ORDER BY recorded_at DESC,id DESC LIMIT 100');
+  return { orders: result.rows };
+});
+app.get('/representative/orders', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'representative' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query('SELECT ' + orderColumns + ' FROM commission_orders WHERE representative_id=$1 ORDER BY recorded_at DESC,id DESC LIMIT 100', [user.id]);
+  return { orders: result.rows };
+});
+
 app.post('/admin/invitations', { schema: { body: { type: 'object', additionalProperties: false, required: ['email'], properties: { email: { type: 'string', maxLength: 254 } } } } }, async (request, reply) => {
   const user = await actor(request.headers.authorization);
   if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
