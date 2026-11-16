@@ -69,13 +69,14 @@ app.get('/admin/representatives', async (request, reply) => {
 });
 app.patch('/admin/representatives/:id/status', {
   schema: {
-    params: { type: 'object', required: ['id'], properties: { id: { type: 'string', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' } } },
+    params: { type: 'object', additionalProperties: false, required: ['id'], properties: { id: { type: 'string', minLength: 1, maxLength: 64 } } },
     body: { type: 'object', additionalProperties: false, required: ['active'], properties: { active: { type: 'boolean' } } }
   }
 }, async (request, reply) => {
   const user = await actor(request.headers.authorization);
   if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
   const { id } = request.params as { id: string };
+  if (!/^[0-9a-fA-F-]{36}$/.test(id) || id.split('-').map(part => part.length).join(',') !== '8,4,4,4,12') return reply.code(400).send({ error: 'Invalid representative ID' });
   const { active } = request.body as { active: boolean };
   const client = await pool.connect();
   try {
