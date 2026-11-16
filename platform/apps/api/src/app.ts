@@ -105,8 +105,8 @@ app.post('/representative/documents/:type', { bodyLimit: 10*1024*1024 }, async (
  const user=await actor(request.headers.authorization);
  if (!user || user.role!=='representative' || !pool) return reply.code(403).send({error:'Forbidden'});
  if (!documentUploadsEnabled || !documentKey || !documentRoot) return reply.code(503).send({error:'Secure document storage is not configured'});
- const eligibility=await pool.query("SELECT approval_status FROM representative_onboarding WHERE representative_id=$1",[user.id]);
- if (!eligibility.rowCount || !['pending','rejected'].includes(eligibility.rows[0].approval_status)) return reply.code(409).send({error:'Document submissions are locked; contact an administrator'});
+ const eligibility=await pool.query("SELECT approval_status,submitted_at FROM representative_onboarding WHERE representative_id=$1",[user.id]);
+ if (!eligibility.rowCount || (!['pending','rejected'].includes(eligibility.rows[0].approval_status) || eligibility.rows[0].submitted_at)) return reply.code(409).send({error:'Document submissions are locked; contact an administrator'});
  const type=(request.params as {type:string}).type;
  if (!documentTypes.some(x=>x===type)) return reply.code(400).send({error:'Invalid document type'});
  const mime=request.headers['x-document-mime'];
@@ -137,7 +137,7 @@ app.post('/representative/documents/:type', { bodyLimit: 10*1024*1024 }, async (
 });
 // Self-service onboarding stores contact details only. Sensitive document uploads
 // require a separate vetted private-storage integration.
-const onboardingFields = 'representative_id AS "representativeId",legal_first_name AS "legalFirstName",legal_last_name AS "legalLastName",mobile_phone AS "mobilePhone",alternate_phone AS "alternatePhone",address_line1 AS "addressLine1",address_line2 AS "addressLine2",city,state_region AS "stateRegion",postal_code AS "postalCode",country_code AS "countryCode",preferred_contact_method AS "preferredContactMethod",tax_document_status AS "taxDocumentStatus",identity_document_status AS "identityDocumentStatus",contractor_agreement_status AS "contractorAgreementStatus",approval_status AS "approvalStatus",reviewed_at AS "reviewedAt"';
+const onboardingFields = 'representative_id AS "representativeId",legal_first_name AS "legalFirstName",legal_last_name AS "legalLastName",mobile_phone AS "mobilePhone",alternate_phone AS "alternatePhone",address_line1 AS "addressLine1",address_line2 AS "addressLine2",city,state_region AS "stateRegion",postal_code AS "postalCode",country_code AS "countryCode",preferred_contact_method AS "preferredContactMethod",tax_document_status AS "taxDocumentStatus",identity_document_status AS "identityDocumentStatus",contractor_agreement_status AS "contractorAgreementStatus",approval_status AS "approvalStatus",reviewed_at AS "reviewedAt",submitted_at AS "submittedAt"';
 const onboardingBody = { body: { type: 'object', additionalProperties: false, required: ['legalFirstName','legalLastName','mobilePhone','addressLine1','city','stateRegion','postalCode','preferredContactMethod'], properties: {
   legalFirstName: { type: 'string', minLength: 1, maxLength: 120 },
   legalLastName: { type: 'string', minLength: 1, maxLength: 120 },
@@ -165,10 +165,31 @@ app.put('/representative/onboarding', { schema: onboardingBody }, async (request
     if (!v[key]?.trim()) return reply.code(400).send({ error: key+' required' });
   const values = ['legalFirstName','legalLastName','mobilePhone','alternatePhone','addressLine1','addressLine2','city','stateRegion','postalCode'].map(key => v[key]?.trim() || null);
   const updated = await pool.query(
-    "UPDATE representative_onboarding SET legal_first_name=$2,legal_last_name=$3,mobile_phone=$4,alternate_phone=$5,address_line1=$6,address_line2=$7,city=$8,state_region=$9,postal_code=$10,preferred_contact_method=$11,approval_status='pending',reviewed_by=NULL,reviewed_at=NULL,updated_at=now() WHERE representative_id=$1 AND approval_status IN ('pending','rejected') RETURNING "+onboardingFields,
+    "UPDATE representative_onboarding SET legal_first_name=$2,legal_last_name=$3,mobile_phone=$4,alternate_phone=$5,address_line1=$6,address_line2=$7,city=$8,state_region=$9,postal_code=$10,preferred_contact_method=$11,approval_status='pending',reviewed_by=NULL,reviewed_at=NULL,updated_at=now() WHERE representative_id=$1 AND submitted_at IS NULL AND approval_status IN ('pending','rejected') RETURNING "+onboardingFields,
     [user.id,...values,v.preferredContactMethod]);
   if (!updated.rowCount) return reply.code(409).send({ error: 'Profile is locked during approval or suspension; contact administrator' });
   return { profile: updated.rows[0] };
+});
+// Submission requests review; it never verifies documents or grants assignments.
+app.post('/representative/onboarding/submit', async (request, reply) => {
+ const user=await actor(request.headers.authorization);
+ if (!user || user.role!=='representative' || !pool) return reply.code(403).send({error:'Forbidden'});
+ const client=await pool.connect();
+ try {
+  await client.query('BEGIN');
+  const found=await client.query('SELECT * FROM representative_onboarding WHERE representative_id=$1 FOR UPDATE',[user.id]);
+  const p=found.rows[0];
+  if (!p) { await client.query('ROLLBACK'); return reply.code(404).send({error:'Onboarding record missing'}); }
+  if (!['pending','rejected'].includes(p.approval_status) || p.submitted_at) { await client.query('ROLLBACK'); return reply.code(409).send({error:'Onboarding already submitted or locked'}); }
+  if (!['legal_first_name','legal_last_name','mobile_phone','address_line1','city','state_region','postal_code','preferred_contact_method'].every(k=>typeof p[k]==='string' && p[k].trim())) { await client.query('ROLLBACK'); return reply.code(409).send({error:'Complete your personal information before submitting'}); }
+  const docs=await client.query('SELECT document_type FROM representative_documents WHERE representative_id=$1',[user.id]);
+  const types=new Set(docs.rows.map((x:{document_type:string})=>x.document_type));
+  if (!['id_front','id_back','w9'].every(t=>types.has(t))) { await client.query('ROLLBACK'); return reply.code(409).send({error:'Upload both ID sides and W-9 before submitting'}); }
+  await client.query("UPDATE representative_onboarding SET submitted_at=now(),approval_status='pending',reviewed_by=NULL,reviewed_at=NULL,updated_at=now() WHERE representative_id=$1",[user.id]);
+  await client.query('INSERT INTO representative_onboarding_submissions(representative_id,identity_status,tax_status,agreement_status) VALUES($1,$2,$3,$4)',[user.id,p.identity_document_status,p.tax_document_status,p.contractor_agreement_status]);
+  await client.query('COMMIT');
+  return {status:'submitted',message:'Submitted for preliminary review. Contractor agreement signing is still required before final approval.'};
+ } catch(err) { await client.query('ROLLBACK'); throw err; } finally { client.release(); }
 });
 app.get('/admin/representative-onboarding', async (request, reply) => {
   const user = await actor(request.headers.authorization);
@@ -191,7 +212,7 @@ app.patch('/admin/representative-onboarding/:id/review', { schema: { body: { typ
       const eligible = await client.query("SELECT 1 FROM representative_onboarding WHERE representative_id=$1 AND tax_document_status='verified' AND identity_document_status='verified' AND contractor_agreement_status='verified' AND legal_first_name IS NOT NULL AND legal_last_name IS NOT NULL AND mobile_phone IS NOT NULL AND address_line1 IS NOT NULL AND city IS NOT NULL AND state_region IS NOT NULL AND postal_code IS NOT NULL", [id]);
       if (!eligible.rowCount) { await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Required profile and verified documents must be complete before approval' }); }
     }
-    await client.query('UPDATE representative_onboarding SET approval_status=$2,reviewed_by=$3,reviewed_at=now(),review_notes=$4,updated_at=now() WHERE representative_id=$1', [id,status,user.id,reason.trim()]);
+    await client.query('UPDATE representative_onboarding SET approval_status=$2,reviewed_by=$3,reviewed_at=now(),review_notes=$4,submitted_at=CASE WHEN $2='rejected' THEN NULL ELSE submitted_at END,updated_at=now() WHERE representative_id=$1', [id,status,user.id,reason.trim()]);
     await client.query('INSERT INTO representative_onboarding_reviews(representative_id,reviewed_by,old_status,new_status,reason) VALUES($1,$2,$3,$4,$5)', [id,user.id,existing.rows[0].approval_status,status,reason.trim()]);
     await client.query('COMMIT');
     return { representativeId:id, status };
