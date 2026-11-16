@@ -329,7 +329,7 @@ app.post('/admin/vendors/:id/agreements', { schema: { body: { type: 'object', ad
 });
 
 
-const pricePattern = /^(?:0|[1-9]\\d{0,9})(?:\\.\\d{1,4})?$/;
+const pricePattern = /^(?:0|[1-9]\d{0,9})(?:\.\d{1,4})?$/;
 const priceUnits = (value: string) => pricePattern.test(value)
   ? BigInt(value.split('.')[0]) * 10000n + BigInt((value.split('.')[1] ?? '').padEnd(4,'0')) : null;
 const money = (value: bigint) => (value / 10000n).toString() + '.' + (value % 10000n).toString().padStart(4,'0');
