@@ -178,6 +178,89 @@ app.get('/representative/territories', async (request, reply) => {
   const result = await pool.query('SELECT t.id,t.name,t.description FROM territories t JOIN representative_territories rt ON rt.territory_id=t.id WHERE rt.representative_id=$1 AND t.active=true ORDER BY t.name,t.id', [user.id]);
   return { territories: result.rows };
 });
+// Store registry: administrators manage stores, representatives see only their assigned stores.
+const storeShape = { type: 'object', additionalProperties: false,
+  required: ['name','addressLine1','city','stateRegion','postalCode'],
+  properties: {
+    name: { type: 'string', minLength: 1, maxLength: 200 },
+    addressLine1: { type: 'string', minLength: 1, maxLength: 250 },
+    addressLine2: { anyOf: [{ type: 'string', maxLength: 250 }, { type: 'null' }] },
+    city: { type: 'string', minLength: 1, maxLength: 120 },
+    stateRegion: { type: 'string', minLength: 1, maxLength: 120 },
+    postalCode: { type: 'string', minLength: 1, maxLength: 30 },
+    contactName: { anyOf: [{ type: 'string', maxLength: 160 }, { type: 'null' }] },
+    contactEmail: { anyOf: [{ type: 'string', maxLength: 254 }, { type: 'null' }] },
+    contactPhone: { anyOf: [{ type: 'string', maxLength: 40 }, { type: 'null' }] }
+  }
+} as const;
+const storeColumns = 'id,name,address_line1 AS "addressLine1",address_line2 AS "addressLine2",city,state_region AS "stateRegion",postal_code AS "postalCode",country_code AS "countryCode",contact_name AS "contactName",contact_email AS "contactEmail",contact_phone AS "contactPhone",territory_id AS "territoryId",primary_representative_id AS "primaryRepresentativeId",active,created_at AS "createdAt",updated_at AS "updatedAt"';
+app.post('/admin/stores', { schema: { body: storeShape } }, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const v = request.body as Record<string, string | null | undefined>;
+  for (const key of ['name','addressLine1','city','stateRegion','postalCode']) {
+    if (!v[key]?.trim()) return reply.code(400).send({ error: key + ' required' });
+  }
+  const result = await pool.query(
+    'INSERT INTO stores(name,address_line1,address_line2,city,state_region,postal_code,contact_name,contact_email,contact_phone) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING ' + storeColumns,
+    [v.name!.trim(),v.addressLine1!.trim(),v.addressLine2?.trim() || null,v.city!.trim(),v.stateRegion!.trim(),v.postalCode!.trim(),v.contactName?.trim() || null,v.contactEmail?.trim().toLowerCase() || null,v.contactPhone?.trim() || null]
+  );
+  return reply.code(201).send({ store: result.rows[0] });
+});
+app.get('/admin/stores', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query('SELECT ' + storeColumns + ' FROM stores ORDER BY created_at DESC,id');
+  return { stores: result.rows };
+});
+app.get('/representative/stores', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user) return reply.code(401).send({ error: 'Unauthorized' });
+  if (user.role !== 'representative' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const result = await pool.query('SELECT ' + storeColumns + ' FROM stores WHERE primary_representative_id=$1 AND active=true ORDER BY name,id', [user.id]);
+  return { stores: result.rows };
+});
+app.put('/admin/stores/:id/assignment', {
+  schema: { body: { type: 'object', additionalProperties: false, required: ['territoryId','representativeId'],
+    properties: { territoryId: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+      representativeId: { anyOf: [{ type: 'string' }, { type: 'null' }] } } } }
+}, async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const { id } = request.params as { id: string };
+  const { territoryId, representativeId } = request.body as { territoryId: string | null; representativeId: string | null };
+  if (!uuid(id) || (territoryId !== null && !uuid(territoryId)) || (representativeId !== null && !uuid(representativeId)) || (representativeId !== null && territoryId === null)) return reply.code(400).send({ error: 'Invalid assignment' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const current = await client.query('SELECT territory_id,primary_representative_id FROM stores WHERE id=$1 FOR UPDATE', [id]);
+    if (!current.rowCount) { await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Store not found' }); }
+    const old = current.rows[0];
+    if (territoryId !== null && !(await client.query('SELECT 1 FROM territories WHERE id=$1 AND active=true FOR SHARE', [territoryId])).rowCount) {
+      await client.query('ROLLBACK'); return reply.code(404).send({ error: 'Active territory not found' });
+    }
+    if (representativeId !== null && !(await client.query("SELECT 1 FROM users u JOIN representative_territories rt ON rt.representative_id=u.id WHERE u.id=$1 AND rt.territory_id=$2 AND u.role='representative' AND u.active=true FOR SHARE OF u,rt", [representativeId,territoryId])).rowCount) {
+      await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Representative is not active and assigned to territory' });
+    }
+    const changed = old.territory_id !== territoryId || old.primary_representative_id !== representativeId;
+    if (changed) {
+      await client.query('UPDATE stores SET territory_id=$1,primary_representative_id=$2,updated_at=now() WHERE id=$3', [territoryId,representativeId,id]);
+      await client.query('INSERT INTO store_assignment_events(store_id,previous_territory_id,new_territory_id,previous_representative_id,new_representative_id,changed_by) VALUES($1,$2,$3,$4,$5,$6)', [id,old.territory_id,territoryId,old.primary_representative_id,representativeId,user.id]);
+    }
+    await client.query('COMMIT');
+    return { storeId: id, territoryId, representativeId, changed };
+  } catch (err) { await client.query('ROLLBACK'); throw err; }
+  finally { client.release(); }
+});
+app.get('/admin/stores/:id/assignment-history', async (request, reply) => {
+  const user = await actor(request.headers.authorization);
+  if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
+  const { id } = request.params as { id: string };
+  if (!uuid(id)) return reply.code(400).send({ error: 'Invalid store ID' });
+  if (!(await pool.query('SELECT 1 FROM stores WHERE id=$1', [id])).rowCount) return reply.code(404).send({ error: 'Store not found' });
+  const result = await pool.query('SELECT id,previous_territory_id AS "previousTerritoryId",new_territory_id AS "newTerritoryId",previous_representative_id AS "previousRepresentativeId",new_representative_id AS "newRepresentativeId",changed_by AS "changedBy",changed_at AS "changedAt" FROM store_assignment_events WHERE store_id=$1 ORDER BY changed_at DESC,id DESC', [id]);
+  return { events: result.rows };
+});
 app.post('/admin/invitations', { schema: { body: { type: 'object', additionalProperties: false, required: ['email'], properties: { email: { type: 'string', maxLength: 254 } } } } }, async (request, reply) => {
   const user = await actor(request.headers.authorization);
   if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
