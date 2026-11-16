@@ -58,6 +58,28 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
         previous_representative_id uuid, new_representative_id uuid,
         changed_by uuid, reason text NOT NULL, effective_at timestamptz NOT NULL DEFAULT now(), changed_at timestamptz NOT NULL DEFAULT now()
       );
+      CREATE TABLE "${schema}".vendors (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL UNIQUE,
+        active boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE TABLE "${schema}".vendor_commission_agreements (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        vendor_id uuid NOT NULL REFERENCES "${schema}".vendors(id),
+        service_fee_percent numeric(7,4) NOT NULL,
+        highline_percent numeric(7,4) NOT NULL,
+        representative_percent numeric(7,4) NOT NULL,
+        effective_from timestamptz NOT NULL,
+        effective_until timestamptz,
+        created_by uuid REFERENCES "${schema}".users(id),
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT valid_commission_percentages CHECK (
+          service_fee_percent BETWEEN 0 AND 100 AND highline_percent BETWEEN 0 AND 100
+          AND representative_percent BETWEEN 0 AND 100
+          AND highline_percent + representative_percent = service_fee_percent
+        ),
+        CONSTRAINT valid_agreement_period CHECK (effective_until IS NULL OR effective_until > effective_from)
+      );
       CREATE TABLE "${schema}".sessions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES "${schema}".users(id),
         token_hash text NOT NULL UNIQUE, expires_at timestamptz NOT NULL
@@ -211,6 +233,36 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     assert.equal((await app.inject({ method: 'GET', url: '/admin/stores/' + storeId + '/assignment-history', headers: repHeaders })).statusCode, 403);
     assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId: null, representativeId: null, reason: 'Representative departed company' } })).statusCode, 200);
     assert.equal((await pool.query('SELECT count(*)::int AS count FROM store_assignment_events WHERE store_id=$1', [storeId])).rows[0].count, 2);
+
+    // Vendor agreements are admin-only, immutable across rate revisions, and add up exactly.
+    assert.equal((await app.inject({ method: 'POST', url: '/admin/vendors', headers: repHeaders, payload: { name: 'Energy Drinks' } })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'GET', url: '/admin/vendors', headers: repHeaders })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'POST', url: '/admin/vendors', headers: adminHeaders, payload: { name: '   ' } })).statusCode, 400);
+    const createdVendor = await app.inject({ method: 'POST', url: '/admin/vendors', headers: adminHeaders, payload: { name: ' Energy Drinks ' } });
+    assert.equal(createdVendor.statusCode, 201);
+    const vendorId = createdVendor.json().vendor.id as string;
+    assert.equal(createdVendor.json().vendor.name, 'Energy Drinks');
+    assert.equal((await app.inject({ method: 'POST', url: '/admin/vendors', headers: adminHeaders, payload: { name: 'Energy Drinks' } })).statusCode, 409);
+    assert.equal((await app.inject({ method: 'GET', url: '/admin/vendors', headers: adminHeaders })).json().vendors.length, 1);
+    const agreementUrl = '/admin/vendors/' + vendorId + '/agreements';
+    const firstRates = { serviceFeePercent: '10', highlinePercent: '3', representativePercent: '7' };
+    assert.equal((await app.inject({ method: 'POST', url: agreementUrl, headers: repHeaders, payload: firstRates })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'GET', url: agreementUrl, headers: repHeaders })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'POST', url: agreementUrl, headers: adminHeaders, payload: { ...firstRates, representativePercent: '8' } })).statusCode, 400);
+    assert.equal((await app.inject({ method: 'POST', url: agreementUrl, headers: adminHeaders, payload: { ...firstRates, highlinePercent: '-1' } })).statusCode, 400);
+    const firstAgreement = await app.inject({ method: 'POST', url: agreementUrl, headers: adminHeaders, payload: firstRates });
+    assert.equal(firstAgreement.statusCode, 201);
+    assert.equal(Number(firstAgreement.json().agreement.serviceFeePercent), 10);
+    assert.equal(Number(firstAgreement.json().agreement.highlinePercent), 3);
+    const secondAgreement = await app.inject({ method: 'POST', url: agreementUrl, headers: adminHeaders, payload: { serviceFeePercent: '14', highlinePercent: '4', representativePercent: '10' } });
+    assert.equal(secondAgreement.statusCode, 201);
+    const agreements = (await app.inject({ method: 'GET', url: agreementUrl, headers: adminHeaders })).json().agreements;
+    assert.equal(agreements.length, 2);
+    assert.equal(agreements[0].effectiveUntil, null);
+    assert.equal(agreements[1].effectiveUntil, agreements[0].effectiveFrom);
+    assert.equal(Number(agreements[1].serviceFeePercent), 10);
+    assert.equal(Number(agreements[0].serviceFeePercent), 14);
+    assert.equal((await pool.query('SELECT count(*)::int AS count FROM vendor_commission_agreements WHERE vendor_id=$1', [vendorId])).rows[0].count, 2);
 
     // Only administrators may list or suspend representatives.
     assert.equal((await app.inject({ method: 'GET', url: '/admin/representatives', headers: { authorization: 'Bearer ' + repToken } })).statusCode, 403);
