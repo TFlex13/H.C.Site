@@ -296,6 +296,7 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     const validOrder = { externalOrderReference: 'ORDER-001', vendorId, storeId, quantity: 2, unitWholesalePrice: '45.0000', unitVendorCost: '25.0000' };
     assert.equal((await app.inject({ method: 'POST', url: orderUrl, headers: repHeaders, payload: validOrder })).statusCode, 403);
     assert.equal((await app.inject({ method: 'POST', url: orderUrl, headers: adminHeaders, payload: validOrder })).statusCode, 409, 'unassigned store cannot earn commissions');
+    assert.equal((await app.inject({ method: 'PUT', url: assignUrl, headers: adminHeaders })).statusCode, 201);
     assert.equal((await app.inject({ method: 'PUT', url: storeAssignUrl, headers: adminHeaders, payload: { territoryId, representativeId: repId, reason: 'Reassign for commission test' } })).statusCode, 200);
     assert.equal((await app.inject({ method: 'POST', url: orderUrl, headers: adminHeaders, payload: { ...validOrder, unitVendorCost: '50.0000' } })).statusCode, 400);
     const recordedOrder = await app.inject({ method: 'POST', url: orderUrl, headers: adminHeaders, payload: validOrder });
