@@ -212,7 +212,7 @@ app.patch('/admin/representative-onboarding/:id/review', { schema: { body: { typ
       const eligible = await client.query("SELECT 1 FROM representative_onboarding WHERE representative_id=$1 AND tax_document_status='verified' AND identity_document_status='verified' AND contractor_agreement_status='verified' AND legal_first_name IS NOT NULL AND legal_last_name IS NOT NULL AND mobile_phone IS NOT NULL AND address_line1 IS NOT NULL AND city IS NOT NULL AND state_region IS NOT NULL AND postal_code IS NOT NULL", [id]);
       if (!eligible.rowCount) { await client.query('ROLLBACK'); return reply.code(409).send({ error: 'Required profile and verified documents must be complete before approval' }); }
     }
-    await client.query('UPDATE representative_onboarding SET approval_status=$2,reviewed_by=$3,reviewed_at=now(),review_notes=$4,submitted_at=CASE WHEN $2='rejected' THEN NULL ELSE submitted_at END,updated_at=now() WHERE representative_id=$1', [id,status,user.id,reason.trim()]);
+    await client.query("UPDATE representative_onboarding SET approval_status=$2,reviewed_by=$3,reviewed_at=now(),review_notes=$4,submitted_at=CASE WHEN $2='rejected' THEN NULL ELSE submitted_at END,updated_at=now() WHERE representative_id=$1", [id,status,user.id,reason.trim()]);
     await client.query('INSERT INTO representative_onboarding_reviews(representative_id,reviewed_by,old_status,new_status,reason) VALUES($1,$2,$3,$4,$5)', [id,user.id,existing.rows[0].approval_status,status,reason.trim()]);
     await client.query('COMMIT');
     return { representativeId:id, status };
