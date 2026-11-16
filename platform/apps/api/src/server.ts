@@ -3,10 +3,14 @@ import Fastify from 'fastify';
 import pg from 'pg';
 import { databaseUrl } from './config.js';
 import { hashPassword, verifyPassword, newToken, tokenHash } from './security.js';
+import { LoginAttemptLimiter } from './login-limiter.js';
 
 const app = Fastify({ logger: true, bodyLimit: 16384 });
 const pool = databaseUrl ? new pg.Pool({ connectionString: databaseUrl, max: 10, connectionTimeoutMillis: 3000 }) : null;
 const email = (value: string) => value.trim().toLowerCase();
+const loginLimiter = new LoginAttemptLimiter();
+// Verify an actual scrypt hash even when the account does not exist.
+const dummyPasswordHash = await hashPassword('highline-dummy-login-password-not-a-user');
 const bearer = (value?: string) => /^Bearer ([A-Za-z0-9_-]{43})$/.exec(value ?? '')?.[1];
 async function actor(authorization?: string) {
   const token = bearer(authorization);
@@ -25,9 +29,22 @@ app.post('/auth/login', { schema: credentials }, async (request, reply) => {
   if (!pool) return reply.code(503).send({ error: 'Database unavailable' });
   const body = request.body as { email: string; password: string };
   const normalized = email(body.email);
+  // Fastify does not trust proxy-supplied IP headers by default.
+  const accountKey = 'account:' + tokenHash(normalized);
+  const ipKey = 'ip:' + tokenHash(request.ip);
+  const keys = [accountKey, ipKey];
+  if (loginLimiter.blocked(keys)) {
+    reply.header('Retry-After', String(loginLimiter.retryAfterSeconds(keys)));
+    return reply.code(429).send({ error: 'Too many login attempts. Try again later.' });
+  }
   const found = await pool.query('SELECT id,email,display_name,role,password_hash FROM users WHERE email=$1 AND active=true', [normalized]);
   const user = found.rows[0];
-  if (!user || !(await verifyPassword(body.password, user.password_hash))) return reply.code(401).send({ error: 'Invalid credentials' });
+  const passwordValid = await verifyPassword(body.password, user?.password_hash ?? dummyPasswordHash);
+  if (!user || !passwordValid) {
+    loginLimiter.failed(keys);
+    return reply.code(401).send({ error: 'Invalid credentials' });
+  }
+  loginLimiter.clear(accountKey);
   const token = newToken();
   await pool.query("INSERT INTO sessions(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval '12 hours')", [user.id, tokenHash(token)]);
   await pool.query('INSERT INTO auth_audit_events(actor_id,action,subject_email) VALUES($1,$2,$3)', [user.id,'login',normalized]);
