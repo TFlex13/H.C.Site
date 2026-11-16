@@ -170,6 +170,34 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
       CREATE TRIGGER commission_vendor_receipt_guard BEFORE INSERT OR UPDATE OR DELETE
       ON "${schema}".commission_vendor_receipts FOR EACH ROW
       EXECUTE FUNCTION "${schema}".guard_commission_vendor_receipt();
+      CREATE TABLE "${schema}".commission_representative_payouts (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        order_id uuid NOT NULL UNIQUE REFERENCES "${schema}".commission_orders(id),
+        vendor_receipt_id uuid NOT NULL UNIQUE REFERENCES "${schema}".commission_vendor_receipts(id),
+        representative_id uuid NOT NULL REFERENCES "${schema}".users(id),
+        payment_reference text NOT NULL CHECK(length(trim(payment_reference)) BETWEEN 1 AND 200),
+        amount numeric(16,4) NOT NULL CHECK(amount > 0),
+        currency_code char(3) NOT NULL DEFAULT 'USD' CHECK(currency_code='USD'),
+        paid_on date NOT NULL,
+        recorded_by uuid NOT NULL REFERENCES "${schema}".users(id),
+        recorded_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE FUNCTION "${schema}".guard_commission_representative_payout()
+      RETURNS trigger LANGUAGE plpgsql AS $payout$
+      DECLARE order_row record; receipt_row record;
+      BEGIN
+        IF TG_OP <> 'INSERT' THEN RAISE EXCEPTION 'Payout immutable'; END IF;
+        SELECT * INTO order_row FROM "${schema}".commission_orders WHERE id=NEW.order_id FOR UPDATE;
+        IF NOT FOUND OR order_row.status <> 'approved' OR order_row.representative_amount <= 0 THEN RAISE EXCEPTION 'Order not payable'; END IF;
+        SELECT * INTO receipt_row FROM "${schema}".commission_vendor_receipts WHERE id=NEW.vendor_receipt_id AND order_id=NEW.order_id;
+        IF NOT FOUND THEN RAISE EXCEPTION 'Receipt missing'; END IF;
+        IF NEW.representative_id <> order_row.representative_id OR NEW.amount <> order_row.representative_amount OR NEW.currency_code <> order_row.currency_code THEN RAISE EXCEPTION 'Payout mismatch'; END IF;
+        RETURN NEW;
+      END;
+      $payout$;
+      CREATE TRIGGER commission_representative_payout_guard BEFORE INSERT OR UPDATE OR DELETE
+      ON "${schema}".commission_representative_payouts FOR EACH ROW
+      EXECUTE FUNCTION "${schema}".guard_commission_representative_payout();
       CREATE TABLE "${schema}".sessions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES "${schema}".users(id),
         token_hash text NOT NULL UNIQUE, expires_at timestamptz NOT NULL
@@ -396,6 +424,28 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     assert.equal(Number(reconciliation.json().vendors[0].outstandingFees), 0);
     assert.equal(Number(reconciliation.json().vendors[0].representativeLiabilityOnReceivedOrders), 4);
     assert.equal(reconciliation.json().representativePayoutsImplemented, false);
+    const payoutUrl = '/admin/orders/' + savedOrder.id + '/representative-payout';
+    const payoutPayload = { paymentReference: 'ACH-PAYOUT-001', paidOn: '2026-11-16' };
+    assert.equal((await app.inject({ method: 'POST', url: payoutUrl, headers: repHeaders, payload: payoutPayload })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'POST', url: payoutUrl, headers: adminHeaders, payload: { ...payoutPayload, paidOn: '2026-02-30' } })).statusCode, 400);
+    const balancesBefore = await app.inject({ method: 'GET', url: '/admin/commissions/representative-balances', headers: adminHeaders });
+    assert.equal(balancesBefore.statusCode, 200, balancesBefore.body);
+    assert.equal(Number(balancesBefore.json().representatives[0].fundedUnpaidBalance), 4);
+    assert.equal(Number(balancesBefore.json().representatives[0].paidEarnings), 0);
+    const payoutResponse = await app.inject({ method: 'POST', url: payoutUrl, headers: adminHeaders, payload: payoutPayload });
+    assert.equal(payoutResponse.statusCode, 201, payoutResponse.body);
+    assert.equal(Number(payoutResponse.json().payout.amount), 4);
+    assert.equal(payoutResponse.json().payout.representativeId, repId);
+    assert.equal(payoutResponse.json().transferInitiated, false);
+    assert.equal((await app.inject({ method: 'POST', url: payoutUrl, headers: adminHeaders, payload: payoutPayload })).statusCode, 409);
+    assert.equal((await app.inject({ method: 'GET', url: '/admin/representative-payouts', headers: repHeaders })).statusCode, 403);
+    assert.equal((await app.inject({ method: 'GET', url: '/admin/representative-payouts', headers: adminHeaders })).json().payouts.length, 1);
+    const balancesAfter = await app.inject({ method: 'GET', url: '/admin/commissions/representative-balances', headers: adminHeaders });
+    assert.equal(Number(balancesAfter.json().representatives[0].fundedUnpaidBalance), 0);
+    assert.equal(Number(balancesAfter.json().representatives[0].paidEarnings), 4);
+    await assert.rejects(pool.query('UPDATE commission_representative_payouts SET amount=1'));
+    await assert.rejects(pool.query('DELETE FROM commission_representative_payouts'));
+
     await assert.rejects(pool.query('UPDATE commission_vendor_receipts SET amount=1'));
     await assert.rejects(pool.query('DELETE FROM commission_vendor_receipts'));
 
