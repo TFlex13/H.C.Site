@@ -91,7 +91,7 @@ export function registerStoreOnboarding(app:FastifyInstance,pool:Pool|null,actor
   try{
    await client.query('BEGIN');
    // Supersede only rejected evidence of the same type and label. Other licenses remain independent.
-   await client.query("UPDATE store_onboarding_documents SET review_status='superseded' WHERE application_id=$1 AND document_type=$2 AND label=$3 AND review_status='rejected'",[invite.application_id,type,label]);
+   await client.query("UPDATE store_onboarding_documents SET review_status='superseded' WHERE application_id=$1 AND document_type=$2 AND (label=$3 OR $2<>'other_license') AND review_status='rejected'",[invite.application_id,type,label]);
    const created=await client.query(`INSERT INTO store_onboarding_documents(application_id,document_type,label,expiration_date,filename,mime_type,byte_size,storage_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,[invite.application_id,type,label,type==='ein_letter'?null:expiration,filename,mime,data.length,storageKey]);
    await client.query('COMMIT');
    return reply.code(201).send({documentId:created.rows[0].id,status:'pending_review'});
@@ -140,8 +140,9 @@ export function registerStoreOnboarding(app:FastifyInstance,pool:Pool|null,actor
   const {id,docId}=request.params as {id:string;docId:string};if(!uuid(id)||!uuid(docId))return reply.code(400).send({error:'Invalid ID'});
   const {status,reason}=request.body as {status:'verified'|'rejected';reason?:string};
   if(status==='rejected'&&(!reason||reason.trim().length<5))return reply.code(400).send({error:'Explain the rejection in at least five characters'});
-  const found=await pool.query(`SELECT d.id,d.submitted_at FROM store_onboarding_documents d JOIN store_onboarding_applications a ON a.id=d.application_id WHERE a.id=$1 AND d.id=$2 AND d.review_status='pending_review' AND a.status='submitted'`,[id,docId]);
+  const found=await pool.query(`SELECT d.id,d.submitted_at,d.expiration_date FROM store_onboarding_documents d JOIN store_onboarding_applications a ON a.id=d.application_id WHERE a.id=$1 AND d.id=$2 AND d.review_status='pending_review' AND a.status='submitted'`,[id,docId]);
   if(!found.rowCount)return reply.code(409).send({error:'Document is not awaiting review'});
+  if(status==='verified' && found.rows[0].expiration_date && new Date(found.rows[0].expiration_date).getTime()<new Date(new Date().toISOString().slice(0,10)).getTime())return reply.code(409).send({error:'Expired licenses cannot be verified; request a current license'});
   const viewed=await pool.query("SELECT 1 FROM store_onboarding_audit WHERE application_id=$1 AND document_id=$2 AND actor_id=$3 AND action='view' AND occurred_at >= $4 AND occurred_at>now()-interval '15 minutes' LIMIT 1",[id,docId,user.id,found.rows[0].submitted_at]);
   if(!viewed.rowCount)return reply.code(409).send({error:'Open the document before reviewing'});
   await pool.query('UPDATE store_onboarding_documents SET review_status=$3,rejection_reason=$4,reviewed_by=$5,reviewed_at=now() WHERE application_id=$1 AND id=$2',[id,docId,status,status==='rejected'?reason!.trim():null,user.id]);
@@ -161,8 +162,8 @@ export function registerStoreOnboarding(app:FastifyInstance,pool:Pool|null,actor
    const a=result.rows[0];if(!a||a.status!=='submitted'){await client.query('ROLLBACK');return reply.code(409).send({error:'Only submitted applications can be reviewed'});}
    let storeId:string|null=null;
    if(status==='approved'){
-    const review=await client.query("SELECT count(*) FILTER (WHERE review_status NOT IN ('verified','superseded'))::int AS outstanding FROM store_onboarding_documents WHERE application_id=$1",[id]);
-    if(review.rows[0].outstanding>0){await client.query('ROLLBACK');return reply.code(409).send({error:'All submitted documents must be verified first'});}
+    const review=await client.query("SELECT count(*) FILTER (WHERE review_status NOT IN ('verified','superseded'))::int AS outstanding, count(*) FILTER (WHERE review_status='verified' AND expiration_date<current_date)::int AS expired FROM store_onboarding_documents WHERE application_id=$1",[id]);
+    if(review.rows[0].outstanding>0||review.rows[0].expired>0){await client.query('ROLLBACK');return reply.code(409).send({error:'All active submitted documents must be verified and unexpired before approval'});}
     const rep=await client.query(`SELECT 1 FROM representative_territories rt JOIN territories t ON t.id=rt.territory_id JOIN users u ON u.id=rt.representative_id JOIN representative_onboarding o ON o.representative_id=u.id WHERE rt.representative_id=$1 AND rt.territory_id=$2 AND u.active=true AND t.active=true AND o.approval_status='approved'`,[a.representative_id,territoryId]);
     if(!rep.rowCount){await client.query('ROLLBACK');return reply.code(409).send({error:'Representative must have an approved account and this active territory assigned'});}
     const store=await client.query(`INSERT INTO stores(name,address_line1,address_line2,city,state_region,postal_code,contact_name,contact_email,contact_phone,territory_id,primary_representative_id,active) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true) RETURNING id`,[a.doing_business_as||a.legal_business_name,a.address_line1,a.address_line2,a.city,a.state_region,a.postal_code,a.contact_name,a.store_email,a.contact_phone,territoryId,a.representative_id]);
