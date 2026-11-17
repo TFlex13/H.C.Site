@@ -21,8 +21,20 @@ This migration creates invitations, applications, encrypted document references,
 3. Open the link as the store contact. It expires after 7 days. Complete business details, optionally enter the EIN (encrypted at rest), and upload EIN confirmation letter and applicable licenses (PDF/JPG/PNG, max 10 MB each). Every license needs an expiration date; EIN letters do not.
 4. Click **Submit for review**. Submitting a store application does not authorize it to transact.
 5. Sign in as admin at `/admin/store-onboarding/dashboard`, linked from the Stores section of `/admin/dashboard`. Review documents; click **View** before verifying or rejecting; rejection reasons are required. Approve only when business-specific licensing is sufficient.
-6. A store requires an eligible active territory assigned to the originating representative before approval. Assign a territory to the representative through the existing admin territory workflow first. Select it during final store approval.
+6. Approval automatically assigns the store to the representative who generated its invitation. On the first approval, the application creates a representative-specific store portfolio territory, then reuses that portfolio for future approved stores. Administrators no longer select a territory for each application. The representative must still be active and approved.
 7. Refresh the representative dashboard. The approved and assigned store should appear under **My stores**.
+
+## Representative portfolio migration (new)
+
+After migrations 017 and 018, run `019_representative_store_portfolios.sql` before testing automatic store approval:
+
+```powershell
+Get-Content .\migrations\019_representative_store_portfolios.sql -Raw |
+  docker exec -i highline-postgres psql -U highline -d highline -v ON_ERROR_STOP=1
+if ($LASTEXITCODE -ne 0) { throw "Representative store portfolio migration failed" }
+```
+
+This creates only a representative-to-portfolio mapping table. It does not move previously assigned stores, rename existing geographic territories, or create geographic exclusivity. Existing geographic territory assignments remain available for future policy work.
 
 ## Security and deferred work
 
