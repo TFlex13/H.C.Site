@@ -17,6 +17,8 @@ test('onboarding routes register and draft agreement downloads without a databas
     assert.match(dashboard.body,/id="onboardingSearch"/);
     assert.match(dashboard.body,/id="storeReviewSearch"/);
     assert.match(dashboard.body,/id="storeReviewDirectory"/);
+    assert.match(dashboard.body,/Their store portfolio will be created automatically/);
+    assert.doesNotMatch(dashboard.body,/id="storeReviewTerritory"/);
     assert.match(dashboard.body,/id="storeReviewDetail"/);
     assert.match(dashboard.body,/function storeReviewRenderQueue/);
     assert.match(dashboard.body,/storeReviewDocDecision/);
