@@ -42,13 +42,19 @@ CREATE TABLE vendor_product_offers(
  wholesale_price numeric(14,4) NOT NULL CHECK(wholesale_price>=0),
  vendor_unit_cost numeric(14,4) NOT NULL CHECK(vendor_unit_cost>=0 AND vendor_unit_cost<=wholesale_price),
  proposed_service_fee_percent numeric(7,4) NOT NULL CHECK(proposed_service_fee_percent BETWEEN 0 AND 100),
+ approved_highline_percent numeric(7,4),
+ approved_representative_percent numeric(7,4),
  status text NOT NULL DEFAULT 'pending_review' CHECK(status IN ('pending_review','approved','rejected','superseded')),
  submitted_by uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
  submitted_at timestamptz NOT NULL DEFAULT now(),
  reviewed_by uuid REFERENCES users(id),
  reviewed_at timestamptz,
  review_reason text,
- CHECK(wholesale_price <= 9999999999)
+ CHECK(wholesale_price <= 9999999999),
+ CHECK((approved_highline_percent IS NULL AND approved_representative_percent IS NULL) OR
+       (approved_highline_percent >= 0 AND approved_representative_percent >= 0 AND
+        approved_highline_percent + approved_representative_percent = proposed_service_fee_percent)),
+ CHECK(status <> 'approved' OR (approved_highline_percent IS NOT NULL AND approved_representative_percent IS NOT NULL))
 );
 CREATE UNIQUE INDEX vendor_offer_one_pending ON vendor_product_offers(product_id) WHERE status='pending_review';
 CREATE INDEX vendor_offer_vendor_idx ON vendor_product_offers(vendor_id,submitted_at DESC);
