@@ -346,12 +346,13 @@ app.get('/admin/representative-onboarding/:id/documents/:type/content', async (r
  reply.header('Content-Disposition','inline');
  return reply.type(d.mime_type).send(clear);
 });
-app.patch('/admin/representative-onboarding/:id/documents/:type/review', {schema:{body:{type:'object',additionalProperties:false,required:['status','reason'],properties:{status:{type:'string',enum:['verified','rejected']},reason:{type:'string',minLength:5,maxLength:1000}}}}}, async (request,reply)=>{
+app.patch('/admin/representative-onboarding/:id/documents/:type/review', {schema:{body:{type:'object',additionalProperties:false,required:['status'],properties:{status:{type:'string',enum:['verified','rejected']},reason:{type:'string',maxLength:1000}}}}}, async (request,reply)=>{
  const user=await actor(request.headers.authorization);
  if (!user || user.role!=='admin' || !pool) return reply.code(403).send({error:'Forbidden'});
  const {id,type}=request.params as {id:string;type:string};
- const {status,reason}=request.body as {status:'verified'|'rejected';reason:string};
- if(!uuid(id)||!documentTypes.some(t=>t===type)||reason.trim().length<5)return reply.code(400).send({error:'Invalid review'});
+ const {status,reason}=request.body as {status:'verified'|'rejected';reason?:string};
+ if(!uuid(id)||!documentTypes.some(t=>t===type))return reply.code(400).send({error:'Invalid review'});
+ if(status==='rejected' && (!reason || reason.trim().length<5))return reply.code(400).send({error:'A rejection reason of at least five characters is required'});
  if(type==='agreement' && status==='verified') return reply.code(409).send({error:'Draft 1.0 is not approved for execution; agreement verification is disabled until legal terms are finalized'});
  const client=await pool.connect();
  try {
@@ -365,7 +366,7 @@ app.patch('/admin/representative-onboarding/:id/documents/:type/review', {schema
   const seen=await client.query("SELECT 1 FROM representative_document_access_audit WHERE document_id=$1 AND administrator_id=$2 AND action='view' AND occurred_at>now()-interval '15 minutes' AND occurred_at >= $3 LIMIT 1",[doc.rows[0].id,user.id,doc.rows[0].submitted_at]);
   if(!seen.rowCount){await client.query('ROLLBACK');return reply.code(409).send({error:'Open and inspect this document before reviewing it'})}
   await client.query('UPDATE representative_documents SET review_status=$3,reviewed_at=now(),reviewed_by=$4 WHERE representative_id=$1 AND document_type=$2',[id,type,status,user.id]);
-  await client.query('INSERT INTO representative_document_access_audit(representative_id,document_type,document_id,administrator_id,action,reason) VALUES($1,$2,$3,$4,$5,$6)',[id,type,doc.rows[0].id,user.id,status,reason.trim()]);
+  await client.query('INSERT INTO representative_document_access_audit(representative_id,document_type,document_id,administrator_id,action,reason) VALUES($1,$2,$3,$4,$5,$6)',[id,type,doc.rows[0].id,user.id,status,status==='rejected'?reason!.trim():null]);
   const rows=await client.query('SELECT document_type,review_status FROM representative_documents WHERE representative_id=$1',[id]);
   const state=new Map(rows.rows.map((d:{document_type:string;review_status:string})=>[d.document_type,d.review_status]));
   const identity=state.get('id_front')==='verified'&&state.get('id_back')==='verified'?'verified':state.get('id_front')==='rejected'||state.get('id_back')==='rejected'?'rejected':'pending_review';
