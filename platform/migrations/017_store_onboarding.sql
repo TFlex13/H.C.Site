@@ -44,7 +44,7 @@ CREATE TABLE store_onboarding_documents (
  mime_type text NOT NULL CHECK(mime_type IN ('application/pdf','image/jpeg','image/png')),
  byte_size int NOT NULL CHECK(byte_size BETWEEN 1 AND 10485760),
  storage_key text NOT NULL UNIQUE,
- review_status text NOT NULL DEFAULT 'pending_review' CHECK(review_status IN ('pending_review','verified','rejected')),
+ review_status text NOT NULL DEFAULT 'pending_review' CHECK(review_status IN ('pending_review','verified','rejected','superseded')),
  rejection_reason text,
  submitted_at timestamptz NOT NULL DEFAULT now(),
  reviewed_by uuid REFERENCES users(id),
