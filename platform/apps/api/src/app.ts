@@ -359,10 +359,10 @@ app.patch('/admin/representative-onboarding/:id/documents/:type/review', {schema
   const onboarding=await client.query('SELECT approval_status,submitted_at FROM representative_onboarding WHERE representative_id=$1 FOR UPDATE',[id]);
   if(!onboarding.rowCount){await client.query('ROLLBACK');return reply.code(404).send({error:'Representative not found'})}
   if(!onboarding.rows[0].submitted_at||onboarding.rows[0].approval_status!=='pending'){await client.query('ROLLBACK');return reply.code(409).send({error:'Only submitted, pending onboarding can be reviewed'})}
-  const doc=await client.query('SELECT id,review_status FROM representative_documents WHERE representative_id=$1 AND document_type=$2 FOR UPDATE',[id,type]);
+  const doc=await client.query('SELECT id,review_status,submitted_at FROM representative_documents WHERE representative_id=$1 AND document_type=$2 FOR UPDATE',[id,type]);
   if(!doc.rowCount){await client.query('ROLLBACK');return reply.code(404).send({error:'Document not found'})}
   if(doc.rows[0].review_status!=='pending_review'){await client.query('ROLLBACK');return reply.code(409).send({error:'Document already reviewed'})}
-  const seen=await client.query("SELECT 1 FROM representative_document_access_audit WHERE document_id=$1 AND administrator_id=$2 AND action='view' AND occurred_at>now()-interval '15 minutes' LIMIT 1",[doc.rows[0].id,user.id]);
+  const seen=await client.query("SELECT 1 FROM representative_document_access_audit WHERE document_id=$1 AND administrator_id=$2 AND action='view' AND occurred_at>now()-interval '15 minutes' AND occurred_at >= $3 LIMIT 1",[doc.rows[0].id,user.id,doc.rows[0].submitted_at]);
   if(!seen.rowCount){await client.query('ROLLBACK');return reply.code(409).send({error:'Open and inspect this document before reviewing it'})}
   await client.query('UPDATE representative_documents SET review_status=$3,reviewed_at=now(),reviewed_by=$4 WHERE representative_id=$1 AND document_type=$2',[id,type,status,user.id]);
   await client.query('INSERT INTO representative_document_access_audit(representative_id,document_type,document_id,administrator_id,action,reason) VALUES($1,$2,$3,$4,$5,$6)',[id,type,doc.rows[0].id,user.id,status,reason.trim()]);
