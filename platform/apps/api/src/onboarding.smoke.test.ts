@@ -18,6 +18,9 @@ test('onboarding routes register and draft agreement downloads without a databas
     assert.match(dashboard.body,/representativeProfileView/);
     assert.match(dashboard.body,/openRepresentativeProfile/);
     assert.match(dashboard.body,/id="profileReviewDocuments"/);
+    assert.match(dashboard.body,/rep-profile-toolbar/);
+    assert.match(dashboard.body,/rep-profile-identity/);
+    assert.match(dashboard.body,/Back to directory/);
     assert.match(dashboard.body,/id="reviewBackToProfile"/);
     assert.match(dashboard.body,/openProfileOnboardingReview/);
     const deepLink=await app.inject({method:'GET',url:'/admin/dashboard/representatives/00000000-0000-0000-0000-000000000000'});
