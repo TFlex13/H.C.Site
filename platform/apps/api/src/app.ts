@@ -138,9 +138,13 @@ app.post('/representative/documents/:type', { bodyLimit: 10*1024*1024 }, async (
      VALUES($1,$2,$3,$4,$5,$6)
      ON CONFLICT(representative_id,document_type) DO UPDATE SET original_filename=EXCLUDED.original_filename,mime_type=EXCLUDED.mime_type,byte_size=EXCLUDED.byte_size,storage_key=EXCLUDED.storage_key,submitted_at=now(),review_status='pending_review',reviewed_at=NULL,reviewed_by=NULL`,[user.id,type,filename,mime,data.length,storageKey]);
  } catch(err){await unlink(file).catch(()=>{});throw err;}
- const docs=await pool.query("SELECT document_type FROM representative_documents WHERE representative_id=$1",[user.id]);
- const types=new Set(docs.rows.map((x:{document_type:string})=>x.document_type));
- await pool.query("UPDATE representative_onboarding SET identity_document_status=CASE WHEN $2 THEN 'pending_review' ELSE 'not_submitted' END,tax_document_status=CASE WHEN $3 THEN 'pending_review' ELSE 'not_submitted' END,contractor_agreement_status=CASE WHEN $4 THEN 'pending_review' ELSE contractor_agreement_status END,updated_at=now() WHERE representative_id=$1",[user.id,types.has('id_front')&&types.has('id_back'),types.has('w9'),types.has('agreement')]);
+ const docs=await pool.query("SELECT document_type,review_status FROM representative_documents WHERE representative_id=$1",[user.id]);
+ const states=new Map(docs.rows.map((x:{document_type:string;review_status:string})=>[x.document_type,x.review_status]));
+ const front=states.get('id_front'),back=states.get('id_back');
+ const identity=front==='rejected'||back==='rejected'?'rejected':front==='verified'&&back==='verified'?'verified':front&&back?'pending_review':'not_submitted';
+ const tax=states.get('w9')||'not_submitted';
+ const agreement=states.get('agreement')||'not_submitted';
+ await pool.query("UPDATE representative_onboarding SET identity_document_status=$2,tax_document_status=$3,contractor_agreement_status=$4,updated_at=now() WHERE representative_id=$1",[user.id,identity,tax,agreement]);
  return reply.code(201).send({documentType:type,status:'pending_review'});
 });
 // Self-service onboarding stores contact details only. Sensitive document uploads
