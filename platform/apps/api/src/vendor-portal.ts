@@ -87,7 +87,7 @@ export function registerVendorPortal(app:FastifyInstance,pool:Pool|null,actor:(a
    await client.query('COMMIT');return reply.code(201).send({productId:product.rows[0].id,offerId:offer.rows[0].id,status:'pending_review'});
   }catch(err){await client.query('ROLLBACK');if((err as {code?:string}).code==='23505')return reply.code(409).send({error:'SKU already exists for this vendor'});throw err}finally{client.release()}
  });
- app.post('/vendor/products/:id/offers',{schema:{body:offerBody},async(request,reply)=>{
+ app.post('/vendor/products/:id/offers',{schema:{body:offerBody}},async(request,reply)=>{
   const member=await current(request.headers.authorization);if(!member||!pool)return reply.code(403).send({error:'Vendor access required'});
   const id=(request.params as {id:string}).id,b=request.body as {wholesalePrice:string;vendorUnitCost:string;serviceFeePercent:string};
   if(!uuid(id))return reply.code(400).send({error:'Invalid product ID'});
