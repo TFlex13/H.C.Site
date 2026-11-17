@@ -80,6 +80,29 @@ app.get('/admin/contractor-agreement/versions', async (request,reply)=>{
  reply.header('Cache-Control','no-store');
  return {signingEnabled:false,versions:rows.rows};
 });
+// Serve the exact immutable PDF snapshot, never regenerate an older version.
+app.get('/admin/contractor-agreement/versions/:id/pdf', async (request,reply)=>{
+ const user=await actor(request.headers.authorization);
+ if(!user||user.role!=='admin'||!pool)return reply.code(403).send({error:'Forbidden'});
+ const {id}=request.params as {id:string};
+ if(!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id))return reply.code(400).send({error:'Invalid agreement version ID'});
+ const found=await pool.query('SELECT version_label,document_sha256,document_pdf FROM contractor_agreement_versions WHERE id=$1',[id]);
+ if(!found.rowCount)return reply.code(404).send({error:'Agreement version not found'});
+ const version=found.rows[0] as {version_label:string;document_sha256:string;document_pdf:Buffer};
+ if(!Buffer.isBuffer(version.document_pdf) || createHash('sha256').update(version.document_pdf).digest('hex')!==version.document_sha256)
+  return reply.code(422).send({error:'Stored agreement PDF failed integrity verification'});
+ const download=(request.query as {download?:string}).download==='1';
+ // Avoid permitting the database version label to control HTTP header syntax.
+ const safeVersion=version.version_label.replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,80);
+ reply.header('Cache-Control','no-store, no-cache, must-revalidate, private');
+ reply.header('Pragma','no-cache');
+ reply.header('X-Content-Type-Options','nosniff');
+ reply.header('Content-Security-Policy',"default-src 'none'; sandbox");
+ reply.header('X-Agreement-Version',safeVersion);
+ reply.header('X-Document-SHA256',version.document_sha256);
+ reply.header('Content-Disposition',(download?'attachment':'inline')+'; filename="Highline-Agreement-'+safeVersion+'.pdf"');
+ return reply.type('application/pdf').send(version.document_pdf);
+});
 // Explicitly reject signing attempts until an approved version, identity verification,
 // consent capture and a complete legal e-signature workflow are implemented.
 app.post('/representative/contractor-agreement/sign', async (request,reply)=>{
