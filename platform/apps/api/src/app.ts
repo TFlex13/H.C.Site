@@ -31,6 +31,14 @@ app.get('/representative/onboarding/profile', async (_request, reply) => {
   reply.header('Referrer-Policy', 'no-referrer');
   return reply.type('text/html; charset=utf-8').send(onboardingPageHtml);
 });
+// Same authenticated dashboard shell for a bookmarked representative dossier.
+// Dashboard authorization stays in its in-memory session; APIs enforce administrator role.
+app.get('/admin/dashboard/representatives/:id', async (_request,reply)=>{
+ reply.header('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src blob:; frame-src blob:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+ reply.header('Cache-Control','no-store');reply.header('X-Content-Type-Options','nosniff');
+ reply.header('Referrer-Policy','no-referrer');
+ return reply.type('text/html; charset=utf-8').send(financeDashboardHtml);
+});
 app.get('/auth/invitation', async (_request, reply) => {
   reply.header('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
   reply.header('Cache-Control', 'no-store');
@@ -343,6 +351,60 @@ app.get('/admin/representatives', async (request, reply) => {
   if (!user || user.role !== 'admin' || !pool) return reply.code(403).send({ error: 'Forbidden' });
   const result = await pool.query("SELECT id,email,display_name,active FROM users WHERE role='representative' ORDER BY email,id");
   return { representatives: result.rows.map(row => ({ id: row.id, email: row.email, displayName: row.display_name, active: row.active })) };
+});
+// Administrator-only individual representative performance dossier.
+// Historical commissions remain attributed to the original representative even if the store is reassigned.
+app.get('/admin/representatives/:id/overview', async (request,reply)=>{
+ const user=await actor(request.headers.authorization);
+ if(!user || user.role!=='admin'||!pool)return reply.code(403).send({error:'Forbidden'});
+ const {id}=request.params as {id:string};
+ if(!uuid(id))return reply.code(400).send({error:'Invalid representative ID'});
+ const person=await pool.query(`SELECT u.id,u.display_name AS "displayName",u.email,u.active,
+   rp.phone,rp.company_name AS "companyName",
+   ob.legal_first_name AS "legalFirstName",ob.legal_last_name AS "legalLastName",
+   ob.mobile_phone AS "mobilePhone",ob.preferred_contact_method AS "preferredContactMethod",
+   ob.approval_status AS "approvalStatus",ob.identity_document_status AS "identityStatus",
+   ob.tax_document_status AS "taxStatus",ob.contractor_agreement_status AS "agreementStatus",
+   ob.submitted_at AS "submittedAt",ob.reviewed_at AS "reviewedAt"
+   FROM users u LEFT JOIN representative_profiles rp ON rp.user_id=u.id
+   LEFT JOIN representative_onboarding ob ON ob.representative_id=u.id
+   WHERE u.id=$1 AND u.role='representative'`,[id]);
+ if(!person.rowCount)return reply.code(404).send({error:'Representative not found'});
+ const [stores,territories,metrics,orders]=await Promise.all([
+  pool.query(`SELECT s.id,s.name,s.city,s.state_region AS "stateRegion",s.active,s.created_at AS "createdAt",
+   t.name AS "territoryName",
+   (SELECT max(o.recorded_at) FROM commission_orders o WHERE o.store_id=s.id AND o.representative_id=$1 AND o.status='approved') AS "lastCreditedOrderAt"
+   FROM stores s LEFT JOIN territories t ON t.id=s.territory_id
+   WHERE s.primary_representative_id=$1 ORDER BY s.name,s.id`,[id]),
+  pool.query(`SELECT t.id,t.name FROM representative_territories rt JOIN territories t ON t.id=rt.territory_id
+   WHERE rt.representative_id=$1 ORDER BY t.name`,[id]),
+  pool.query(`SELECT count(*) FILTER (WHERE o.status='approved')::int AS "approvedOrders",
+   count(*) FILTER (WHERE o.status='pending')::int AS "pendingOrders",
+   count(*) FILTER (WHERE o.status='voided')::int AS "voidedOrders",
+   count(DISTINCT o.store_id) FILTER (WHERE o.status='approved')::int AS "storesWithApprovedOrders",
+   max(o.recorded_at) FILTER (WHERE o.status='approved') AS "lastApprovedOrderAt",
+   coalesce(sum(o.representative_amount) FILTER (WHERE o.status='approved'),0)::text AS "approvedEarnings",
+   coalesce(sum(o.representative_amount) FILTER (WHERE o.status='approved' AND r.id IS NOT NULL),0)::text AS "fundedEarnings",
+   coalesce(sum(p.amount) FILTER (WHERE o.status='approved'),0)::text AS "paidEarnings",
+   coalesce(sum(o.representative_amount) FILTER (WHERE o.status='approved' AND r.id IS NOT NULL AND p.id IS NULL),0)::text AS "fundedUnpaidBalance",
+   coalesce(sum(o.representative_amount) FILTER (WHERE o.status='approved' AND r.id IS NULL),0)::text AS "awaitingVendorPayment"
+   FROM commission_orders o LEFT JOIN commission_vendor_receipts r ON r.order_id=o.id
+   LEFT JOIN commission_representative_payouts p ON p.order_id=o.id WHERE o.representative_id=$1`,[id]),
+  pool.query(`SELECT o.id,o.external_order_reference AS "reference",o.status,o.recorded_at AS "recordedAt",
+   o.representative_amount::text AS "representativeAmount",o.currency_code AS "currencyCode",
+   s.name AS "storeName",v.name AS "vendorName",
+   (r.id IS NOT NULL) AS "vendorFunded",(p.id IS NOT NULL) AS "representativePaid",
+   p.paid_on::text AS "paidOn"
+   FROM commission_orders o LEFT JOIN stores s ON s.id=o.store_id
+   LEFT JOIN vendors v ON v.id=o.vendor_id
+   LEFT JOIN commission_vendor_receipts r ON r.order_id=o.id
+   LEFT JOIN commission_representative_payouts p ON p.order_id=o.id
+   WHERE o.representative_id=$1 ORDER BY o.recorded_at DESC,o.id DESC LIMIT 50`,[id])
+ ]);
+ reply.header('Cache-Control','no-store, private');
+ return {representative:person.rows[0],stores:stores.rows,territories:territories.rows,
+  metrics:{...metrics.rows[0],assignedStores:stores.rows.length,activeAssignedStores:stores.rows.filter((store:{active:boolean})=>store.active).length},
+  recentOrders:orders.rows,ordersShownLimit:50};
 });
 app.patch('/admin/representatives/:id/status', {
   schema: {
