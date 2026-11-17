@@ -1,5 +1,5 @@
 import Fastify from 'fastify';
-import { randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
+import { randomBytes, createCipheriv, createDecipheriv, createHash } from 'node:crypto';
 import { mkdir, writeFile, unlink, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { financeDashboardHtml } from './finance-dashboard.js';
@@ -45,12 +45,49 @@ app.get('/admin/dashboard', async (_request, reply) => {
   reply.header('Referrer-Policy', 'no-referrer');
   return reply.type('text/html; charset=utf-8').send(financeDashboardHtml);
 });
+// Version 1.0 is an immutable review snapshot. No signing route is enabled.
+const agreementDraftVersion='1.0-draft';
+async function currentAgreementDraft() {
+ const pdf=contractorAgreementDraftPdf();
+ const hash=createHash('sha256').update(pdf).digest('hex');
+ if(!pool) return {version:agreementDraftVersion,sha256:hash,status:'draft',pdf};
+ await pool.query("INSERT INTO contractor_agreement_versions(version_label,document_sha256,document_pdf,status) VALUES($1,$2,$3,'draft') ON CONFLICT(version_label) DO NOTHING",[agreementDraftVersion,hash,pdf]);
+ const row=await pool.query("SELECT version_label,document_sha256,document_pdf,status FROM contractor_agreement_versions WHERE version_label=$1",[agreementDraftVersion]);
+ const saved=row.rows[0];
+ if(!saved || saved.document_sha256!==hash || saved.status!=='draft') throw new Error('Contractor agreement draft version mismatch: a new version is required');
+ return {version:saved.version_label as string,sha256:saved.document_sha256 as string,status:saved.status as string,pdf:saved.document_pdf as Buffer};
+}
+app.get('/representative/contractor-agreement/version', async (request,reply)=>{
+ const user=await actor(request.headers.authorization);
+ if(!user || user.role!=='representative'||!pool) return reply.code(403).send({error:'Forbidden'});
+ const version=await currentAgreementDraft();
+ reply.header('Cache-Control','no-store');
+ return {version:version.version,sha256:version.sha256,status:version.status,signingEnabled:false,requiresLegalApproval:true};
+});
+app.get('/admin/contractor-agreement/versions', async (request,reply)=>{
+ const user=await actor(request.headers.authorization);
+ if(!user || user.role!=='admin'||!pool) return reply.code(403).send({error:'Forbidden'});
+ await currentAgreementDraft();
+ const rows=await pool.query('SELECT id,version_label AS "version",document_sha256 AS "sha256",status,created_at AS "createdAt",approved_at AS "approvedAt" FROM contractor_agreement_versions ORDER BY created_at DESC');
+ reply.header('Cache-Control','no-store');
+ return {signingEnabled:false,versions:rows.rows};
+});
+// Explicitly reject signing attempts until an approved version, identity verification,
+// consent capture and a complete legal e-signature workflow are implemented.
+app.post('/representative/contractor-agreement/sign', async (request,reply)=>{
+ const user=await actor(request.headers.authorization);
+ if(!user || user.role!=='representative'||!pool)return reply.code(403).send({error:'Forbidden'});
+ return reply.code(409).send({error:'Electronic signing is not enabled. Draft 1.0 is not approved for execution.'});
+});
 // Review draft only: signing this version does not establish an approved agreement.
 app.get('/representative/contractor-agreement/draft.pdf', async (_request,reply)=>{
+ const draft=await currentAgreementDraft();
  reply.header('Cache-Control','no-store, private');
  reply.header('X-Content-Type-Options','nosniff');
+ reply.header('X-Agreement-Version',draft.version);
+ reply.header('X-Document-SHA256',draft.sha256);
  reply.header('Content-Disposition','attachment; filename="Highline-Connect-Representative-Agreement-Draft-1.0.pdf"');
- return reply.type('application/pdf').send(contractorAgreementDraftPdf());
+ return reply.type('application/pdf').send(draft.pdf);
 });
 app.get('/health', async () => ({ status: 'ok', service: 'highline-api' }));
 app.get('/health/db', async (_request, reply) => {
