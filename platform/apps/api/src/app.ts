@@ -517,7 +517,7 @@ app.get('/representative/dashboard/overview', async (request, reply) => {
  const onboarding=await pool.query('SELECT approval_status AS "approvalStatus",identity_document_status AS "identityStatus",tax_document_status AS "taxStatus",contractor_agreement_status AS "agreementStatus",legal_first_name AS "legalFirstName",legal_last_name AS "legalLastName",mobile_phone AS "mobilePhone",alternate_phone AS "alternatePhone",address_line1 AS "addressLine1",address_line2 AS "addressLine2",city,state_region AS "stateRegion",postal_code AS "postalCode",preferred_contact_method AS "preferredContactMethod" FROM representative_onboarding WHERE representative_id=$1',[user.id]);
  if(!onboarding.rowCount || onboarding.rows[0].approvalStatus!=='approved') return reply.code(403).send({error:'Representative approval required'});
  const [stores,territories,metrics,orders,documents]=await Promise.all([
-  pool.query(`SELECT s.id,s.name,s.address_line1 AS "addressLine1",s.city,s.state_region AS "stateRegion",s.postal_code AS "postalCode",t.name AS "territoryName",
+  pool.query(`SELECT s.id,s.name,s.address_line1 AS "addressLine1",s.city,s.state_region AS "stateRegion",s.postal_code AS "postalCode",s.latitude,s.longitude,t.name AS "territoryName",
    (SELECT max(o.recorded_at) FROM commission_orders o WHERE o.store_id=s.id AND o.representative_id=$1 AND o.status='approved') AS "lastCreditedOrderAt"
    FROM stores s LEFT JOIN territories t ON t.id=s.territory_id
    WHERE s.primary_representative_id=$1 AND s.active=true ORDER BY s.name,s.id`,[user.id]),
@@ -548,6 +548,38 @@ app.get('/representative/dashboard/overview', async (request, reply) => {
   documentExpirationTrackingEnabled:false,currencyCode:'USD'};
 });
 
+// Opt-in, low-volume, on-demand address resolution for a single assigned store.
+// Public Nominatim is not a general-purpose bulk geocoder. Cache results in stores.
+let lastStoreGeocodeAt=0;
+app.post('/representative/stores/:id/locate', async(request,reply)=>{
+ const user=await actor(request.headers.authorization);
+ if(!user||user.role!=='representative'||!pool)return reply.code(403).send({error:'Forbidden'});
+ const id=(request.params as {id:string}).id;
+ if(!uuid(id))return reply.code(400).send({error:'Invalid store ID'});
+ const configuredEmail=process.env.HIGHLINE_OSM_CONTACT_EMAIL;
+ if(!configuredEmail||!/^\\S+@\\S+\\.\\S+$/.test(configuredEmail))return reply.code(503).send({error:'Store mapping geocoder is not configured. Set HIGHLINE_OSM_CONTACT_EMAIL for local testing.'});
+ const stored=await pool.query(`SELECT s.id,s.name,s.address_line1,s.city,s.state_region,s.postal_code,s.latitude,s.longitude
+ FROM stores s JOIN representative_onboarding ob ON ob.representative_id=$1
+ WHERE s.id=$2 AND s.primary_representative_id=$1 AND s.active=true AND ob.approval_status='approved'`,[user.id,id]);
+ if(!stored.rowCount)return reply.code(404).send({error:'Assigned store not found'});
+ const store=stored.rows[0];
+ if(store.latitude!==null&&store.longitude!==null)return {latitude:store.latitude,longitude:store.longitude,cached:true};
+ // Global in-process throttle; intentionally only one lookup at a time for local development.
+ if(Date.now()-lastStoreGeocodeAt<2000)return reply.code(429).send({error:'Map lookup rate limit. Try again in a few seconds.'});
+ lastStoreGeocodeAt=Date.now();
+ const address=[store.address_line1,store.city,store.state_region,store.postal_code,'USA'].filter(Boolean).join(', ');
+ try{
+  const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=us&q='+encodeURIComponent(address);
+  const response=await fetch(url,{headers:{'User-Agent':'HighlineConnectStoreMap/0.1 ('+configuredEmail+')','Accept':'application/json'},signal:AbortSignal.timeout(8000)});
+  if(!response.ok)return reply.code(502).send({error:'Map address lookup temporarily unavailable'});
+  const data=await response.json() as Array<{lat:string;lon:string}>;
+  if(!Array.isArray(data)||!data.length)return reply.code(404).send({error:'Store address could not be located. Check the address with an administrator.'});
+  const latitude=Number(data[0].lat),longitude=Number(data[0].lon);
+  if(!Number.isFinite(latitude)||!Number.isFinite(longitude)||Math.abs(latitude)>90||Math.abs(longitude)>180)return reply.code(502).send({error:'Invalid map coordinates returned'});
+  await pool.query('UPDATE stores SET latitude=$2,longitude=$3 WHERE id=$1 AND latitude IS NULL AND longitude IS NULL',[id,latitude,longitude]);
+  return {latitude,longitude,cached:false};
+ }catch{return reply.code(502).send({error:'Address lookup failed. Try again later.'})}
+});
 // Approved representatives may maintain contact details without reopening onboarding.
 // Legal identity and login email changes require a separate verified workflow.
 app.patch('/representative/dashboard/contact', {schema:{body:{type:'object',additionalProperties:false,required:['mobilePhone','alternatePhone','addressLine1','addressLine2','city','stateRegion','postalCode','preferredContactMethod'],properties:{
