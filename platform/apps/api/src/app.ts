@@ -254,6 +254,18 @@ app.get('/admin/representative-onboarding', async (request, reply) => {
   const found = await pool.query("SELECT "+onboardingFields+",u.display_name AS \"displayName\",u.email FROM representative_onboarding o JOIN users u ON u.id=o.representative_id ORDER BY u.display_name LIMIT 200");
   return { representatives: found.rows };
 });
+// Direct representative lookup supports profile-to-onboarding navigation even when
+// the general review directory is paginated or limited.
+app.get('/admin/representative-onboarding/:id', async (request,reply)=>{
+ const user=await actor(request.headers.authorization);
+ if(!user||user.role!=='admin'||!pool)return reply.code(403).send({error:'Forbidden'});
+ const {id}=request.params as {id:string};
+ if(!uuid(id))return reply.code(400).send({error:'Invalid representative ID'});
+ const found=await pool.query("SELECT "+onboardingFields+",u.display_name AS \"displayName\",u.email FROM representative_onboarding o JOIN users u ON u.id=o.representative_id WHERE o.representative_id=$1 AND u.role='representative'",[id]);
+ if(!found.rowCount)return reply.code(404).send({error:'Representative onboarding not found'});
+ reply.header('Cache-Control','no-store, private');
+ return {representative:found.rows[0]};
+});
 // Admin-only metadata review queue. No sensitive document bytes or storage paths are exposed.
 app.get('/admin/representative-onboarding/:id/documents', async (request, reply) => {
  const user=await actor(request.headers.authorization);
