@@ -41,7 +41,7 @@ app.get('/representative/dashboard', async (_request, reply) => {
  return reply.type('text/html; charset=utf-8').send(onboardingPageHtml);
 });
 app.get('/representative/onboarding/profile', async (_request, reply) => {
-  reply.header('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+  reply.header('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline' https://unpkg.com; style-src 'unsafe-inline' https://unpkg.com; img-src 'self' data: https://tile.openstreetmap.org https://unpkg.com; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
   reply.header('Cache-Control', 'no-store');
   reply.header('X-Content-Type-Options', 'nosniff');
   reply.header('Referrer-Policy', 'no-referrer');
@@ -52,7 +52,7 @@ app.get('/representative/onboarding/profile', async (_request, reply) => {
 app.get('/admin/dashboard/representatives/:id', async (_request,reply)=>{
  reply.header('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src blob:; frame-src blob:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
  reply.header('Cache-Control','no-store');reply.header('X-Content-Type-Options','nosniff');
- reply.header('Referrer-Policy','no-referrer');
+ reply.header('Referrer-Policy','strict-origin-when-cross-origin');
  return reply.type('text/html; charset=utf-8').send(financeDashboardHtml);
 });
 app.get('/auth/invitation', async (_request, reply) => {
@@ -557,7 +557,7 @@ app.post('/representative/stores/:id/locate', async(request,reply)=>{
  const id=(request.params as {id:string}).id;
  if(!uuid(id))return reply.code(400).send({error:'Invalid store ID'});
  const configuredEmail=process.env.HIGHLINE_OSM_CONTACT_EMAIL;
- if(!configuredEmail||!/^\\S+@\\S+\\.\\S+$/.test(configuredEmail))return reply.code(503).send({error:'Store mapping geocoder is not configured. Set HIGHLINE_OSM_CONTACT_EMAIL for local testing.'});
+ if(!configuredEmail||!/^\S+@\S+\.\S+$/.test(configuredEmail))return reply.code(503).send({error:'Store mapping geocoder is not configured. Set HIGHLINE_OSM_CONTACT_EMAIL for local testing.'});
  const stored=await pool.query(`SELECT s.id,s.name,s.address_line1,s.city,s.state_region,s.postal_code,s.latitude,s.longitude
  FROM stores s JOIN representative_onboarding ob ON ob.representative_id=$1
  WHERE s.id=$2 AND s.primary_representative_id=$1 AND s.active=true AND ob.approval_status='approved'`,[user.id,id]);
