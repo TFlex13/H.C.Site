@@ -149,12 +149,11 @@ export function registerStoreOnboarding(app:FastifyInstance,pool:Pool|null,actor
   await pool.query('INSERT INTO store_onboarding_audit(application_id,document_id,actor_id,action,reason) VALUES($1,$2,$3,$4,$5)',[id,docId,user.id,status,status==='rejected'?reason!.trim():null]);
   return {status};
  });
- app.patch('/admin/store-onboarding/:id/decision',{schema:{body:{type:'object',required:['status'],additionalProperties:false,properties:{status:{type:'string',enum:['approved','changes_requested','rejected']},reason:{type:'string',maxLength:1000},territoryId:{type:'string'}}}}},async(request,reply)=>{
+ app.patch('/admin/store-onboarding/:id/decision',{schema:{body:{type:'object',required:['status'],additionalProperties:false,properties:{status:{type:'string',enum:['approved','changes_requested','rejected']},reason:{type:'string',maxLength:1000}}}}},async(request,reply)=>{
   const user=await access(request);if(!user||user.role!=='admin'||!pool)return reply.code(403).send({error:'Forbidden'});
   const id=(request.params as {id:string}).id;if(!uuid(id))return reply.code(400).send({error:'Invalid ID'});
-  const {status,reason,territoryId}=request.body as {status:'approved'|'changes_requested'|'rejected';reason?:string;territoryId?:string};
+  const {status,reason}=request.body as {status:'approved'|'changes_requested'|'rejected';reason?:string};
   if(status!=='approved'&&(!reason||reason.trim().length<5))return reply.code(400).send({error:'Review reason required'});
-  if(status==='approved'&&(!territoryId||!uuid(territoryId)))return reply.code(400).send({error:'Select a territory assigned to the representative'});
   const client=await pool.connect();
   try{
    await client.query('BEGIN');
@@ -164,8 +163,25 @@ export function registerStoreOnboarding(app:FastifyInstance,pool:Pool|null,actor
    if(status==='approved'){
     const review=await client.query("SELECT count(*) FILTER (WHERE review_status NOT IN ('verified','superseded'))::int AS outstanding, count(*) FILTER (WHERE review_status='verified' AND expiration_date<current_date)::int AS expired FROM store_onboarding_documents WHERE application_id=$1",[id]);
     if(review.rows[0].outstanding>0||review.rows[0].expired>0){await client.query('ROLLBACK');return reply.code(409).send({error:'All active submitted documents must be verified and unexpired before approval'});}
-    const rep=await client.query(`SELECT 1 FROM representative_territories rt JOIN territories t ON t.id=rt.territory_id JOIN users u ON u.id=rt.representative_id JOIN representative_onboarding o ON o.representative_id=u.id WHERE rt.representative_id=$1 AND rt.territory_id=$2 AND u.active=true AND t.active=true AND o.approval_status='approved'`,[a.representative_id,territoryId]);
-    if(!rep.rowCount){await client.query('ROLLBACK');return reply.code(409).send({error:'Representative must have an approved account and this active territory assigned'});}
+    // Serialize all first-store approvals for the same representative.
+    // The inviting representative is fixed by the invitation; administrators do not reassign here.
+    const rep=await client.query(`SELECT u.id,u.display_name FROM users u JOIN representative_onboarding o ON o.representative_id=u.id
+      WHERE u.id=$1 AND u.role='representative' AND u.active=true AND o.approval_status='approved' FOR UPDATE OF u`,[a.representative_id]);
+    if(!rep.rowCount){await client.query('ROLLBACK');return reply.code(409).send({error:'Inviting representative must have an active approved account'});}
+    let portfolio=await client.query('SELECT territory_id FROM representative_store_portfolios WHERE representative_id=$1',[a.representative_id]);
+    let territoryId:string;
+    if(portfolio.rowCount){
+      territoryId=portfolio.rows[0].territory_id;
+      const active=await client.query('SELECT 1 FROM territories WHERE id=$1 AND active=true',[territoryId]);
+      if(!active.rowCount){await client.query('ROLLBACK');return reply.code(409).send({error:'Representative store portfolio is inactive; contact an administrator'});}
+    }else{
+      const label=(rep.rows[0].display_name||'Representative').slice(0,65);
+      const name=label+' store portfolio ('+a.representative_id.slice(0,8)+')';
+      const created=await client.query('INSERT INTO territories(name,description) VALUES($1,$2) RETURNING id',[name,'Store portfolio created from representative-originated approved registrations; not an exclusive geographic boundary']);
+      territoryId=created.rows[0].id;
+      await client.query('INSERT INTO representative_territories(representative_id,territory_id,assigned_by) VALUES($1,$2,$3)',[a.representative_id,territoryId,user.id]);
+      await client.query('INSERT INTO representative_store_portfolios(representative_id,territory_id) VALUES($1,$2)',[a.representative_id,territoryId]);
+    }
     const store=await client.query(`INSERT INTO stores(name,address_line1,address_line2,city,state_region,postal_code,contact_name,contact_email,contact_phone,territory_id,primary_representative_id,active) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true) RETURNING id`,[a.doing_business_as||a.legal_business_name,a.address_line1,a.address_line2,a.city,a.state_region,a.postal_code,a.contact_name,a.store_email,a.contact_phone,territoryId,a.representative_id]);
     storeId=store.rows[0].id;
     await client.query('INSERT INTO store_assignment_events(store_id,new_territory_id,new_representative_id,changed_by) VALUES($1,$2,$3,$4)',[storeId,territoryId,a.representative_id,user.id]);
