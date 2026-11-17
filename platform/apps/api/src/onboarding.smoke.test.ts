@@ -16,6 +16,10 @@ test('onboarding routes register and draft agreement downloads without a databas
     assert.match(dashboard.body,/id="agreementSearch"/);
     assert.match(dashboard.body,/id="onboardingSearch"/);
     assert.match(dashboard.body,/function filterAgreementVersions/);
+    assert.match(dashboard.body,/View PDF/);
+    assert.match(dashboard.body,/Download PDF/);
+    assert.match(dashboard.body,/agreementPdfViewer/);
+    assert.match(dashboard.body,/fetchAgreementPdf/);
     assert.match(dashboard.body,/function filterOnboardingQueue/);
     assert.match(dashboard.body,/function filterRepresentatives/);
     assert.match(dashboard.body,/No representatives match your search/);
@@ -33,6 +37,10 @@ test('onboarding routes register and draft agreement downloads without a databas
     assert.equal(repProfile.statusCode,403);
     const directReview=await app.inject({method:'GET',url:'/admin/representative-onboarding/00000000-0000-0000-0000-000000000000'});
     assert.equal(directReview.statusCode,403);
+    const agreementPdf=await app.inject({method:'GET',url:'/admin/contractor-agreement/versions/00000000-0000-0000-0000-000000000000/pdf'});
+    assert.equal(agreementPdf.statusCode,403);
+    const agreementPdfDownload=await app.inject({method:'GET',url:'/admin/contractor-agreement/versions/00000000-0000-0000-0000-000000000000/pdf?download=1'});
+    assert.equal(agreementPdfDownload.statusCode,403);
     const page = await app.inject({method:'GET',url:'/representative/onboarding/profile'});
     assert.equal(page.statusCode,200);
     assert.match(String(page.headers['content-type']||''),/text\/html/);
