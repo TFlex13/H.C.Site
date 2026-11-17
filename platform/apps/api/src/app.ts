@@ -5,6 +5,8 @@ import { join } from 'node:path';
 import { financeDashboardHtml } from './finance-dashboard.js';
 import { invitationPageHtml } from './invitation-page.js';
 import { onboardingPageHtml } from './onboarding-page.js';
+import { storeOnboardingPageHtml } from './store-onboarding-page.js';
+import { registerStoreOnboarding } from './store-onboarding.js';
 import { contractorAgreementDraftPdf } from './contractor-agreement-draft.js';
 import type { Pool } from 'pg';
 import { hashPassword, verifyPassword, newToken, tokenHash } from './security.js';
@@ -24,6 +26,10 @@ async function actor(authorization?: string) {
   return result.rows[0] as { id: string; email: string; display_name: string; role: string } | undefined ?? null;
 }
 const credentials = { body: { type: 'object', additionalProperties: false, required: ['email','password'], properties: { email: { type: 'string', maxLength: 254 }, password: { type: 'string', minLength: 1, maxLength: 1024 } } } } as const;
+app.get('/store/onboarding', async (_request,reply)=>{
+ reply.header('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+ reply.header('Cache-Control','no-store');reply.header('Referrer-Policy','no-referrer');reply.header('X-Content-Type-Options','nosniff');return reply.type('text/html; charset=utf-8').send(storeOnboardingPageHtml);
+});
 app.get('/representative/dashboard', async (_request, reply) => {
  reply.header('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
  reply.header('Cache-Control','no-store');reply.header('X-Content-Type-Options','nosniff');reply.header('Referrer-Policy','no-referrer');
@@ -174,6 +180,7 @@ const documentKeyHex = process.env.HIGHLINE_DOCUMENT_ENCRYPTION_KEY ?? '';
 const documentKey = /^[a-fA-F0-9]{64}$/.test(documentKeyHex) ? Buffer.from(documentKeyHex,'hex') : null;
 const documentRoot = process.env.HIGHLINE_PRIVATE_DOCUMENT_DIR;
 const documentUploadsEnabled = Boolean(documentKey && documentRoot);
+registerStoreOnboarding(app,pool,actor,documentRoot,documentKey);
 // Isolated localhost test switch. Never available in production.
 const localDraftApprovalTest = process.env.HIGHLINE_LOCAL_DRAFT_APPROVAL_TEST === 'true'
   && process.env.NODE_ENV !== 'production'
