@@ -52,6 +52,10 @@ test('onboarding routes register and draft agreement downloads without a databas
     const repDashboard=await app.inject({method:'GET',url:'/representative/dashboard'});
     assert.equal(repDashboard.statusCode,200);
     assert.match(repDashboard.body,/Generate registration link/);
+    assert.match(repDashboard.body,/territoryMap/);
+    assert.match(repDashboard.body,/tile.openstreetmap.org/);
+    const unauthorizedLocate=await app.inject({method:'POST',url:'/representative/stores/00000000-0000-0000-0000-000000000000/locate'});
+    assert.equal(unauthorizedLocate.statusCode,403);
     const storeIntake=await app.inject({method:'GET',url:'/store/onboarding'});
     assert.equal(storeIntake.statusCode,200);
     assert.match(storeIntake.body,/Register your store/);
