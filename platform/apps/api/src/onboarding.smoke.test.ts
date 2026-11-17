@@ -12,6 +12,9 @@ test('onboarding routes register and draft agreement downloads without a databas
     assert.equal(dashboard.statusCode,200);
     assert.match(dashboard.body,/Agreement version register/);
     assert.match(dashboard.body,/agreementVersionDirectory/);
+    assert.match(dashboard.body,/id="repSearch"/);
+    assert.match(dashboard.body,/function filterRepresentatives/);
+    assert.match(dashboard.body,/No representatives match your search/);
     const page = await app.inject({method:'GET',url:'/representative/onboarding/profile'});
     assert.equal(page.statusCode,200);
     assert.match(String(page.headers['content-type']||''),/text\/html/);
