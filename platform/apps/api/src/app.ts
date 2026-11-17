@@ -169,6 +169,10 @@ const documentKeyHex = process.env.HIGHLINE_DOCUMENT_ENCRYPTION_KEY ?? '';
 const documentKey = /^[a-fA-F0-9]{64}$/.test(documentKeyHex) ? Buffer.from(documentKeyHex,'hex') : null;
 const documentRoot = process.env.HIGHLINE_PRIVATE_DOCUMENT_DIR;
 const documentUploadsEnabled = Boolean(documentKey && documentRoot);
+// Isolated localhost test switch. Never available in production.
+const localDraftApprovalTest = process.env.HIGHLINE_LOCAL_DRAFT_APPROVAL_TEST === 'true'
+  && process.env.NODE_ENV !== 'production'
+  && (process.env.API_HOST ?? '127.0.0.1') === '127.0.0.1';
 app.addContentTypeParser('application/octet-stream', { parseAs: 'buffer', bodyLimit: 10 * 1024 * 1024 }, (_req, body, done) => done(null,body));
 const documentTypes = ['id_front','id_back','w9','agreement'] as const;
 app.get('/representative/documents', async (request, reply) => {
@@ -314,7 +318,7 @@ app.get('/admin/representative-onboarding/:id/documents', async (request, reply)
  const rep=await pool.query('SELECT submitted_at,approval_status FROM representative_onboarding WHERE representative_id=$1',[id]);
  if (!rep.rowCount) return reply.code(404).send({error:'Representative not found'});
  const docs=await pool.query('SELECT document_type AS "documentType",original_filename AS "filename",mime_type AS "mimeType",byte_size AS "byteSize",review_status AS "status",submitted_at AS "submittedAt",reviewed_at AS "reviewedAt" FROM representative_documents WHERE representative_id=$1 ORDER BY document_type',[id]);
- return {submittedAt:rep.rows[0].submitted_at,approvalStatus:rep.rows[0].approval_status,documents:docs.rows};
+ return {submittedAt:rep.rows[0].submitted_at,approvalStatus:rep.rows[0].approval_status,localDraftApprovalTest,documents:docs.rows};
 });
 // Sensitive bytes are available only to authenticated administrators, never by public URL.
 app.get('/admin/representative-onboarding/:id/documents/:type/content', async (request, reply) => {
@@ -353,7 +357,7 @@ app.patch('/admin/representative-onboarding/:id/documents/:type/review', {schema
  const {status,reason}=request.body as {status:'verified'|'rejected';reason?:string};
  if(!uuid(id)||!documentTypes.some(t=>t===type))return reply.code(400).send({error:'Invalid review'});
  if(status==='rejected' && (!reason || reason.trim().length<5))return reply.code(400).send({error:'A rejection reason of at least five characters is required'});
- if(type==='agreement' && status==='verified') return reply.code(409).send({error:'Draft 1.0 is not approved for execution; agreement verification is disabled until legal terms are finalized'});
+ if(type==='agreement' && status==='verified' && !localDraftApprovalTest) return reply.code(409).send({error:'Draft 1.0 is not approved for execution; agreement verification is disabled until legal terms are finalized'});
  const client=await pool.connect();
  try {
   await client.query('BEGIN');
@@ -366,7 +370,7 @@ app.patch('/admin/representative-onboarding/:id/documents/:type/review', {schema
   const seen=await client.query("SELECT 1 FROM representative_document_access_audit WHERE document_id=$1 AND administrator_id=$2 AND action='view' AND occurred_at>now()-interval '15 minutes' AND occurred_at >= $3 LIMIT 1",[doc.rows[0].id,user.id,doc.rows[0].submitted_at]);
   if(!seen.rowCount){await client.query('ROLLBACK');return reply.code(409).send({error:'Open and inspect this document before reviewing it'})}
   await client.query('UPDATE representative_documents SET review_status=$3,reviewed_at=now(),reviewed_by=$4 WHERE representative_id=$1 AND document_type=$2',[id,type,status,user.id]);
-  await client.query('INSERT INTO representative_document_access_audit(representative_id,document_type,document_id,administrator_id,action,reason) VALUES($1,$2,$3,$4,$5,$6)',[id,type,doc.rows[0].id,user.id,status,status==='rejected'?reason!.trim():null]);
+  await client.query('INSERT INTO representative_document_access_audit(representative_id,document_type,document_id,administrator_id,action,reason) VALUES($1,$2,$3,$4,$5,$6)',[id,type,doc.rows[0].id,user.id,status,status==='rejected'?reason!.trim():(type==='agreement'&&localDraftApprovalTest?'LOCAL TEST ONLY: draft verified for workflow testing; not legally executed':null)]);
   const rows=await client.query('SELECT document_type,review_status FROM representative_documents WHERE representative_id=$1',[id]);
   const state=new Map(rows.rows.map((d:{document_type:string;review_status:string})=>[d.document_type,d.review_status]));
   const identity=state.get('id_front')==='verified'&&state.get('id_back')==='verified'?'verified':state.get('id_front')==='rejected'||state.get('id_back')==='rejected'?'rejected':'pending_review';
