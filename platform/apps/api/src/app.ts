@@ -36,8 +36,8 @@ app.get('/store/onboarding', async (_request,reply)=>{
  reply.header('Cache-Control','no-store');reply.header('Referrer-Policy','no-referrer');reply.header('X-Content-Type-Options','nosniff');return reply.type('text/html; charset=utf-8').send(storeOnboardingPageHtml);
 });
 app.get('/representative/dashboard', async (_request, reply) => {
- reply.header('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
- reply.header('Cache-Control','no-store');reply.header('X-Content-Type-Options','nosniff');reply.header('Referrer-Policy','no-referrer');
+ reply.header('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline' https://unpkg.com; style-src 'unsafe-inline' https://unpkg.com; img-src 'self' data: https://tile.openstreetmap.org https://unpkg.com; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+ reply.header('Cache-Control','no-store');reply.header('X-Content-Type-Options','nosniff');reply.header('Referrer-Policy','strict-origin-when-cross-origin');
  return reply.type('text/html; charset=utf-8').send(onboardingPageHtml);
 });
 app.get('/representative/onboarding/profile', async (_request, reply) => {
