@@ -41,7 +41,7 @@ export function registerStoreOnboarding(app:FastifyInstance,pool:Pool|null,actor
   const invite=await validInvite((request.body as {token:string}).token);
   if(!invite||!pool)return reply.code(404).send({error:'Invitation invalid or expired'});
   const application=invite.application_id?(await pool.query(`SELECT legal_business_name AS "legalBusinessName",doing_business_as AS "doingBusinessAs",contact_name AS "contactName",contact_phone AS "contactPhone",address_line1 AS "addressLine1",address_line2 AS "addressLine2",city,state_region AS "stateRegion",postal_code AS "postalCode",ein_last4 AS "einLast4",status,review_reason AS "reviewReason" FROM store_onboarding_applications WHERE id=$1`,[invite.application_id])).rows[0]:null;
-  const docs=invite.application_id?(await pool.query(`SELECT id,document_type AS "documentType",label,expiration_date::text AS "expirationDate",filename,review_status AS "status",rejection_reason AS "rejectionReason" FROM store_onboarding_documents WHERE application_id=$1 ORDER BY submitted_at DESC`,[invite.application_id])).rows:[];
+  const docs=invite.application_id?(await pool.query(`SELECT id,document_type AS "documentType",label,expiration_date::text AS "expirationDate",filename,review_status AS "status",rejection_reason AS "rejectionReason" FROM store_onboarding_documents WHERE application_id=$1 AND review_status<>'superseded' ORDER BY submitted_at DESC`,[invite.application_id])).rows:[];
   reply.header('Cache-Control','no-store');return {email:invite.store_email,application,documents:docs,uploadsEnabled:Boolean(key&&storageRoot)};
  });
  app.post('/store/onboarding/application',async(request,reply)=>{
@@ -87,10 +87,15 @@ export function registerStoreOnboarding(app:FastifyInstance,pool:Pool|null,actor
   const storageKey=randomBytes(24).toString('hex');
   await mkdir(storageRoot,{recursive:true,mode:0o700});
   await writeFile(join(storageRoot,storageKey),encrypted,{flag:'wx',mode:0o600});
+  const client=await pool.connect();
   try{
-   const created=await pool.query(`INSERT INTO store_onboarding_documents(application_id,document_type,label,expiration_date,filename,mime_type,byte_size,storage_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,[invite.application_id,type,label,type==='ein_letter'?null:expiration,filename,mime,data.length,storageKey]);
+   await client.query('BEGIN');
+   // Supersede only rejected evidence of the same type and label. Other licenses remain independent.
+   await client.query("UPDATE store_onboarding_documents SET review_status='superseded' WHERE application_id=$1 AND document_type=$2 AND label=$3 AND review_status='rejected'",[invite.application_id,type,label]);
+   const created=await client.query(`INSERT INTO store_onboarding_documents(application_id,document_type,label,expiration_date,filename,mime_type,byte_size,storage_key) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,[invite.application_id,type,label,type==='ein_letter'?null:expiration,filename,mime,data.length,storageKey]);
+   await client.query('COMMIT');
    return reply.code(201).send({documentId:created.rows[0].id,status:'pending_review'});
-  }catch(e){await unlink(join(storageRoot,storageKey)).catch(()=>{});throw e}
+  }catch(e){await client.query('ROLLBACK');await unlink(join(storageRoot,storageKey)).catch(()=>{});throw e}finally{client.release()}
  });
  app.post('/store/onboarding/submit',async(request,reply)=>{
   const invite=await validInvite((request.body as {token?:string})?.token);
@@ -111,7 +116,7 @@ export function registerStoreOnboarding(app:FastifyInstance,pool:Pool|null,actor
   const a=await pool.query(`SELECT a.id,a.legal_business_name AS "businessName",a.doing_business_as AS "dba",a.contact_name AS "contactName",a.contact_phone AS "contactPhone",a.address_line1 AS "addressLine1",a.address_line2 AS "addressLine2",a.city,a.state_region AS "stateRegion",a.postal_code AS "postalCode",a.ein_last4 AS "einLast4",a.status,a.review_reason AS "reviewReason",i.store_email AS "email",i.representative_id AS "representativeId" FROM store_onboarding_applications a JOIN store_onboarding_invites i ON i.id=a.invite_id WHERE a.id=$1`,[id]);
   if(!a.rowCount)return reply.code(404).send({error:'Not found'});
   const [docs,territories]=await Promise.all([
-   pool.query(`SELECT id,document_type AS "documentType",label,expiration_date::text AS "expirationDate",filename,review_status AS "status",rejection_reason AS "rejectionReason" FROM store_onboarding_documents WHERE application_id=$1 ORDER BY submitted_at DESC`,[id]),
+   pool.query(`SELECT id,document_type AS "documentType",label,expiration_date::text AS "expirationDate",filename,review_status AS "status",rejection_reason AS "rejectionReason" FROM store_onboarding_documents WHERE application_id=$1 AND review_status<>'superseded' ORDER BY submitted_at DESC`,[id]),
    pool.query(`SELECT t.id,t.name FROM representative_territories rt JOIN territories t ON t.id=rt.territory_id WHERE rt.representative_id=$1 AND t.active=true ORDER BY t.name`,[a.rows[0].representativeId])
   ]);
   return {application:a.rows[0],documents:docs.rows,eligibleTerritories:territories.rows};
@@ -156,7 +161,7 @@ export function registerStoreOnboarding(app:FastifyInstance,pool:Pool|null,actor
    const a=result.rows[0];if(!a||a.status!=='submitted'){await client.query('ROLLBACK');return reply.code(409).send({error:'Only submitted applications can be reviewed'});}
    let storeId:string|null=null;
    if(status==='approved'){
-    const review=await client.query("SELECT count(*) FILTER (WHERE review_status <> 'verified')::int AS outstanding FROM store_onboarding_documents WHERE application_id=$1",[id]);
+    const review=await client.query("SELECT count(*) FILTER (WHERE review_status NOT IN ('verified','superseded'))::int AS outstanding FROM store_onboarding_documents WHERE application_id=$1",[id]);
     if(review.rows[0].outstanding>0){await client.query('ROLLBACK');return reply.code(409).send({error:'All submitted documents must be verified first'});}
     const rep=await client.query(`SELECT 1 FROM representative_territories rt JOIN territories t ON t.id=rt.territory_id JOIN users u ON u.id=rt.representative_id JOIN representative_onboarding o ON o.representative_id=u.id WHERE rt.representative_id=$1 AND rt.territory_id=$2 AND u.active=true AND t.active=true AND o.approval_status='approved'`,[a.representative_id,territoryId]);
     if(!rep.rowCount){await client.query('ROLLBACK');return reply.code(409).send({error:'Representative must have an approved account and this active territory assigned'});}
