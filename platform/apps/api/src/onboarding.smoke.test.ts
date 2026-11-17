@@ -15,6 +15,12 @@ test('onboarding routes register and draft agreement downloads without a databas
     assert.match(dashboard.body,/id="repSearch"/);
     assert.match(dashboard.body,/id="agreementSearch"/);
     assert.match(dashboard.body,/id="onboardingSearch"/);
+    assert.match(dashboard.body,/id="storeReviewSearch"/);
+    assert.match(dashboard.body,/id="storeReviewDirectory"/);
+    assert.match(dashboard.body,/id="storeReviewDetail"/);
+    assert.match(dashboard.body,/function storeReviewRenderQueue/);
+    assert.match(dashboard.body,/storeReviewDocDecision/);
+    assert.doesNotMatch(dashboard.body,/Open store onboarding review queue/);
     assert.match(dashboard.body,/function filterAgreementVersions/);
     assert.match(dashboard.body,/View PDF/);
     assert.match(dashboard.body,/Download PDF/);
