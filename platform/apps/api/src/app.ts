@@ -375,7 +375,7 @@ app.patch('/admin/representative-onboarding/:id/documents/:type/review', {schema
   const state=new Map(rows.rows.map((d:{document_type:string;review_status:string})=>[d.document_type,d.review_status]));
   const identity=state.get('id_front')==='verified'&&state.get('id_back')==='verified'?'verified':state.get('id_front')==='rejected'||state.get('id_back')==='rejected'?'rejected':'pending_review';
   const tax=state.get('w9')==='verified'?'verified':state.get('w9')==='rejected'?'rejected':'pending_review';
-  await client.query('UPDATE representative_onboarding SET identity_document_status=$2,tax_document_status=$3,contractor_agreement_status=CASE WHEN $4 THEN \'rejected\' ELSE contractor_agreement_status END,updated_at=now() WHERE representative_id=$1',[id,identity,tax,type==='agreement'&&status==='rejected']);
+  await client.query("UPDATE representative_onboarding SET identity_document_status=$2,tax_document_status=$3,contractor_agreement_status=CASE WHEN $4 THEN $5 ELSE contractor_agreement_status END,updated_at=now() WHERE representative_id=$1",[id,identity,tax,type==='agreement',status]);
   await client.query('COMMIT');
   return {documentType:type,status,identityStatus:identity,taxStatus:tax};
  }catch(err){await client.query('ROLLBACK');throw err}finally{client.release()}
