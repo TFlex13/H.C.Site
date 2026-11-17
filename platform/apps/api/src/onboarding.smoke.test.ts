@@ -8,6 +8,10 @@ test('onboarding routes register and draft agreement downloads without a databas
   const app = await createApp(null);
   try {
     await app.ready();
+    const dashboard=await app.inject({method:'GET',url:'/admin/dashboard'});
+    assert.equal(dashboard.statusCode,200);
+    assert.match(dashboard.body,/Agreement version register/);
+    assert.match(dashboard.body,/agreementVersionDirectory/);
     const page = await app.inject({method:'GET',url:'/representative/onboarding/profile'});
     assert.equal(page.statusCode,200);
     assert.match(String(page.headers['content-type']||''),/text\/html/);
