@@ -7,6 +7,8 @@ import { invitationPageHtml } from './invitation-page.js';
 import { onboardingPageHtml } from './onboarding-page.js';
 import { storeOnboardingPageHtml } from './store-onboarding-page.js';
 import { storeOnboardingAdminHtml } from './store-onboarding-admin.js';
+import { vendorDashboardHtml } from './vendor-dashboard.js';
+import { registerVendorPortal } from './vendor-portal.js';
 import { registerStoreOnboarding } from './store-onboarding.js';
 import { contractorAgreementDraftPdf } from './contractor-agreement-draft.js';
 import type { Pool } from 'pg';
@@ -31,6 +33,8 @@ app.get('/admin/store-onboarding/dashboard',async (_request,reply)=>{
  reply.header('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src blob:; frame-src blob:; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
  reply.header('Cache-Control','no-store');reply.header('Referrer-Policy','no-referrer');reply.header('X-Content-Type-Options','nosniff');return reply.type('text/html; charset=utf-8').send(storeOnboardingAdminHtml);
 });
+app.get('/vendor/signup',async(_request,reply)=>{reply.header('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");reply.header('Cache-Control','no-store');reply.header('Referrer-Policy','no-referrer');return reply.type('text/html; charset=utf-8').send(vendorDashboardHtml)});
+app.get('/vendor/dashboard',async(_request,reply)=>{reply.header('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");reply.header('Cache-Control','no-store');reply.header('Referrer-Policy','no-referrer');return reply.type('text/html; charset=utf-8').send(vendorDashboardHtml)});
 app.get('/store/onboarding', async (_request,reply)=>{
  reply.header('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
  reply.header('Cache-Control','no-store');reply.header('Referrer-Policy','no-referrer');reply.header('X-Content-Type-Options','nosniff');return reply.type('text/html; charset=utf-8').send(storeOnboardingPageHtml);
@@ -186,6 +190,7 @@ const documentKey = /^[a-fA-F0-9]{64}$/.test(documentKeyHex) ? Buffer.from(docum
 const documentRoot = process.env.HIGHLINE_PRIVATE_DOCUMENT_DIR;
 const documentUploadsEnabled = Boolean(documentKey && documentRoot);
 registerStoreOnboarding(app,pool,actor,documentRoot,documentKey);
+registerVendorPortal(app,pool,actor);
 // Isolated localhost test switch. Never available in production.
 const localDraftApprovalTest = process.env.HIGHLINE_LOCAL_DRAFT_APPROVAL_TEST === 'true'
   && process.env.NODE_ENV !== 'production'
