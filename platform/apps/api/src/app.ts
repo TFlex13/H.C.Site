@@ -502,7 +502,7 @@ app.patch('/admin/representatives/:id/status', {
 app.get('/representative/dashboard/overview', async (request, reply) => {
  const user=await actor(request.headers.authorization);
  if(!user || user.role!=='representative' || !pool) return reply.code(403).send({error:'Forbidden'});
- const onboarding=await pool.query('SELECT approval_status AS "approvalStatus",identity_document_status AS "identityStatus",tax_document_status AS "taxStatus",contractor_agreement_status AS "agreementStatus" FROM representative_onboarding WHERE representative_id=$1',[user.id]);
+ const onboarding=await pool.query('SELECT approval_status AS "approvalStatus",identity_document_status AS "identityStatus",tax_document_status AS "taxStatus",contractor_agreement_status AS "agreementStatus",legal_first_name AS "legalFirstName",legal_last_name AS "legalLastName",mobile_phone AS "mobilePhone",alternate_phone AS "alternatePhone",address_line1 AS "addressLine1",address_line2 AS "addressLine2",city,state_region AS "stateRegion",postal_code AS "postalCode",preferred_contact_method AS "preferredContactMethod" FROM representative_onboarding WHERE representative_id=$1',[user.id]);
  if(!onboarding.rowCount || onboarding.rows[0].approvalStatus!=='approved') return reply.code(403).send({error:'Representative approval required'});
  const [stores,territories,metrics,orders,documents]=await Promise.all([
   pool.query(`SELECT s.id,s.name,s.address_line1 AS "addressLine1",s.city,s.state_region AS "stateRegion",s.postal_code AS "postalCode",t.name AS "territoryName",
@@ -536,6 +536,29 @@ app.get('/representative/dashboard/overview', async (request, reply) => {
   documentExpirationTrackingEnabled:false,currencyCode:'USD'};
 });
 
+// Approved representatives may maintain contact details without reopening onboarding.
+// Legal identity and login email changes require a separate verified workflow.
+app.patch('/representative/dashboard/contact', {schema:{body:{type:'object',additionalProperties:false,required:['mobilePhone','alternatePhone','addressLine1','addressLine2','city','stateRegion','postalCode','preferredContactMethod'],properties:{
+ mobilePhone:{type:'string',minLength:7,maxLength:30},
+ alternatePhone:{type:['string','null'],maxLength:30},
+ addressLine1:{type:'string',minLength:1,maxLength:200},
+ addressLine2:{type:['string','null'],maxLength:200},
+ city:{type:'string',minLength:1,maxLength:120},
+ stateRegion:{type:'string',minLength:1,maxLength:120},
+ postalCode:{type:'string',minLength:1,maxLength:20},
+ preferredContactMethod:{type:'string',enum:['email','mobile','phone']}
+}}}}, async (request,reply)=>{
+ const user=await actor(request.headers.authorization);
+ if(!user||user.role!=='representative'||!pool)return reply.code(403).send({error:'Forbidden'});
+ const v=request.body as {mobilePhone:string;alternatePhone:string|null;addressLine1:string;addressLine2:string|null;city:string;stateRegion:string;postalCode:string;preferredContactMethod:'email'|'mobile'|'phone'};
+ for(const key of ['mobilePhone','addressLine1','city','stateRegion','postalCode'] as const)if(!v[key].trim())return reply.code(400).send({error:key+' required'});
+ const changed=await pool.query(`UPDATE representative_onboarding SET mobile_phone=$2,alternate_phone=$3,address_line1=$4,address_line2=$5,city=$6,state_region=$7,postal_code=$8,preferred_contact_method=$9,updated_at=now()
+ WHERE representative_id=$1 AND approval_status='approved'
+ RETURNING mobile_phone AS "mobilePhone",alternate_phone AS "alternatePhone",address_line1 AS "addressLine1",address_line2 AS "addressLine2",city,state_region AS "stateRegion",postal_code AS "postalCode",preferred_contact_method AS "preferredContactMethod"`,[user.id,v.mobilePhone.trim(),v.alternatePhone?.trim()||null,v.addressLine1.trim(),v.addressLine2?.trim()||null,v.city.trim(),v.stateRegion.trim(),v.postalCode.trim(),v.preferredContactMethod]);
+ if(!changed.rowCount)return reply.code(409).send({error:'Your account must be approved to edit contact information'});
+ reply.header('Cache-Control','no-store, private');
+ return {contact:changed.rows[0]};
+});
 // Representative profile is self-service; administrators may inspect profiles separately later.
 app.get('/representative/profile', async (request, reply) => {
   const user = await actor(request.headers.authorization);
