@@ -2,7 +2,7 @@ import type {FastifyInstance} from 'fastify';
 import type {Pool} from 'pg';
 import {newToken,tokenHash,hashPassword} from './security.js';
 type Actor={id:string;role:string;email?:string;display_name?:string}|null|undefined;
-const uuid=(s:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+const uuid=(s:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 const amountPattern=/^(?:0|[1-9]\d{0,9})(?:\.\d{1,4})?$/;
 const percentPattern=/^(?:0|[1-9]\d{0,2})(?:\.\d{1,4})?$/;
 const amount=(s:string)=>amountPattern.test(s)&&Number(s)<=9999999999?Number(s):null;
