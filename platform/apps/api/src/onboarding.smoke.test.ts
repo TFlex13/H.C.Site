@@ -13,6 +13,10 @@ test('onboarding routes register and draft agreement downloads without a databas
     assert.match(dashboard.body,/Agreement version register/);
     assert.match(dashboard.body,/agreementVersionDirectory/);
     assert.match(dashboard.body,/id="repSearch"/);
+    assert.match(dashboard.body,/id="agreementSearch"/);
+    assert.match(dashboard.body,/id="onboardingSearch"/);
+    assert.match(dashboard.body,/function filterAgreementVersions/);
+    assert.match(dashboard.body,/function filterOnboardingQueue/);
     assert.match(dashboard.body,/function filterRepresentatives/);
     assert.match(dashboard.body,/No representatives match your search/);
     assert.match(dashboard.body,/representativeProfileView/);
