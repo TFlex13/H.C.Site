@@ -104,6 +104,18 @@ export function registerVendorPortal(app:FastifyInstance,pool:Pool|null,actor:(a
    await client.query('COMMIT');return reply.code(201).send({offerId:offer.rows[0].id,status:'pending_review'});
   }catch(err){await client.query('ROLLBACK');throw err}finally{client.release()}
  });
+ app.get('/representative/catalog',async(request,reply)=>{
+  const user=await actor(request.headers.authorization);if(!user||user.role!=='representative'||!pool)return reply.code(403).send({error:'Representative access required'});
+  const approved=await pool.query("SELECT 1 FROM representative_onboarding WHERE representative_id=$1 AND approval_status='approved'",[user.id]);
+  if(!approved.rowCount)return reply.code(403).send({error:'Representative approval required'});
+  const rows=await pool.query(`SELECT p.id,p.sku,p.name,p.description,p.category,p.unit_label AS "unitLabel",v.name AS "vendorName",
+     o.wholesale_price::text AS "wholesalePrice",o.approved_representative_percent::text AS "representativePercent"
+    FROM vendor_products p JOIN vendors v ON v.id=p.vendor_id AND v.active=true
+    JOIN LATERAL (SELECT wholesale_price,approved_representative_percent FROM vendor_product_offers
+      WHERE product_id=p.id AND status='approved' ORDER BY reviewed_at DESC LIMIT 1)o ON true
+    WHERE p.active=true ORDER BY v.name,p.name LIMIT 500`);
+  reply.header('Cache-Control','no-store, private');return {products:rows.rows,currencyCode:'USD'};
+ });
  app.get('/admin/vendor-catalog/offers',async(request,reply)=>{
   const admin=await actor(request.headers.authorization);if(!admin||admin.role!=='admin'||!pool)return reply.code(403).send({error:'Forbidden'});
   const rows=await pool.query(`SELECT ${offerFields},v.name AS "vendorName",v.id AS "vendorId"
