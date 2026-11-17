@@ -492,6 +492,45 @@ app.patch('/admin/representatives/:id/status', {
   finally { client.release(); }
 });
 
+// Representative-only dashboard summary. The identity comes exclusively from the session token.
+// Approved representatives can see their own stores, commissions and compliance metadata.
+app.get('/representative/dashboard/overview', async (request, reply) => {
+ const user=await actor(request.headers.authorization);
+ if(!user || user.role!=='representative' || !pool) return reply.code(403).send({error:'Forbidden'});
+ const onboarding=await pool.query('SELECT approval_status AS "approvalStatus",identity_document_status AS "identityStatus",tax_document_status AS "taxStatus",contractor_agreement_status AS "agreementStatus" FROM representative_onboarding WHERE representative_id=$1',[user.id]);
+ if(!onboarding.rowCount || onboarding.rows[0].approvalStatus!=='approved') return reply.code(403).send({error:'Representative approval required'});
+ const [stores,territories,metrics,orders,documents]=await Promise.all([
+  pool.query(`SELECT s.id,s.name,s.address_line1 AS "addressLine1",s.city,s.state_region AS "stateRegion",s.postal_code AS "postalCode",t.name AS "territoryName",
+   (SELECT max(o.recorded_at) FROM commission_orders o WHERE o.store_id=s.id AND o.representative_id=$1 AND o.status='approved') AS "lastCreditedOrderAt"
+   FROM stores s LEFT JOIN territories t ON t.id=s.territory_id
+   WHERE s.primary_representative_id=$1 AND s.active=true ORDER BY s.name,s.id`,[user.id]),
+  pool.query('SELECT t.name FROM representative_territories rt JOIN territories t ON t.id=rt.territory_id WHERE rt.representative_id=$1 AND t.active=true ORDER BY t.name',[user.id]),
+  pool.query(`SELECT count(*) FILTER (WHERE o.status='approved')::int AS "approvedOrders",
+   count(*) FILTER (WHERE o.status='pending')::int AS "pendingOrders",
+   coalesce(sum(o.representative_amount) FILTER (WHERE o.status='approved'),0)::text AS "approvedEarnings",
+   coalesce(sum(o.representative_amount) FILTER (WHERE o.status='approved' AND r.id IS NOT NULL),0)::text AS "fundedEarnings",
+   coalesce(sum(p.amount) FILTER (WHERE o.status='approved'),0)::text AS "paidEarnings",
+   coalesce(sum(o.representative_amount) FILTER (WHERE o.status='approved' AND r.id IS NOT NULL AND p.id IS NULL),0)::text AS "fundedUnpaidBalance",
+   coalesce(sum(o.representative_amount) FILTER (WHERE o.status='approved' AND r.id IS NULL),0)::text AS "awaitingVendorPayment"
+   FROM commission_orders o LEFT JOIN commission_vendor_receipts r ON r.order_id=o.id
+   LEFT JOIN commission_representative_payouts p ON p.order_id=o.id
+   WHERE o.representative_id=$1`,[user.id]),
+  pool.query(`SELECT o.id,o.external_order_reference AS "reference",o.status,o.recorded_at AS "recordedAt",
+   o.representative_amount::text AS "representativeAmount",o.currency_code AS "currencyCode",
+   s.name AS "storeName",v.name AS "vendorName",
+   (r.id IS NOT NULL) AS "vendorFunded",(p.id IS NOT NULL) AS "representativePaid"
+   FROM commission_orders o LEFT JOIN stores s ON s.id=o.store_id LEFT JOIN vendors v ON v.id=o.vendor_id
+   LEFT JOIN commission_vendor_receipts r ON r.order_id=o.id LEFT JOIN commission_representative_payouts p ON p.order_id=o.id
+   WHERE o.representative_id=$1 ORDER BY o.recorded_at DESC,o.id DESC LIMIT 20`,[user.id]),
+  pool.query('SELECT document_type AS "documentType",review_status AS "status",submitted_at AS "submittedAt" FROM representative_documents WHERE representative_id=$1 ORDER BY document_type',[user.id])
+ ]);
+ reply.header('Cache-Control','no-store, private');
+ return {representative:{displayName:user.display_name,email:user.email},onboarding:onboarding.rows[0],
+  documents:documents.rows,stores:stores.rows,territories:territories.rows,
+  metrics:{...metrics.rows[0],activeAssignedStores:stores.rows.length},recentOrders:orders.rows,
+  documentExpirationTrackingEnabled:false,currencyCode:'USD'};
+});
+
 // Representative profile is self-service; administrators may inspect profiles separately later.
 app.get('/representative/profile', async (request, reply) => {
   const user = await actor(request.headers.authorization);
