@@ -24,6 +24,11 @@ async function actor(authorization?: string) {
   return result.rows[0] as { id: string; email: string; display_name: string; role: string } | undefined ?? null;
 }
 const credentials = { body: { type: 'object', additionalProperties: false, required: ['email','password'], properties: { email: { type: 'string', maxLength: 254 }, password: { type: 'string', minLength: 1, maxLength: 1024 } } } } as const;
+app.get('/representative/dashboard', async (_request, reply) => {
+ reply.header('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
+ reply.header('Cache-Control','no-store');reply.header('X-Content-Type-Options','nosniff');reply.header('Referrer-Policy','no-referrer');
+ return reply.type('text/html; charset=utf-8').send(onboardingPageHtml);
+});
 app.get('/representative/onboarding/profile', async (_request, reply) => {
   reply.header('Content-Security-Policy', "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'");
   reply.header('Cache-Control', 'no-store');
