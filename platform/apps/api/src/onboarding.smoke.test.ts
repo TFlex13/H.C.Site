@@ -65,6 +65,8 @@ test('onboarding routes register and draft agreement downloads without a databas
     const unauthorizedLocate=await app.inject({method:'POST',url:'/representative/stores/00000000-0000-0000-0000-000000000000/locate'});
     assert.equal(unauthorizedLocate.statusCode,403);
     const storeIntake=await app.inject({method:'GET',url:'/store/onboarding'});
+    assert.match(storeIntake.body,/Create password \(minimum 12 characters\)/);
+    assert.match(storeIntake.body,/id="storePasswordConfirm"/);
     assert.equal(storeIntake.statusCode,200);
     assert.match(storeIntake.body,/Register your store/);
     assert.match(storeIntake.body,/License expiration date/);
