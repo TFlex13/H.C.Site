@@ -3,6 +3,7 @@ import type { Pool } from 'pg';
 import { randomBytes, createHash, createCipheriv, createDecipheriv } from 'node:crypto';
 import { mkdir,writeFile,unlink,readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { hashPassword } from './security.js';
 
 type Actor = { id:string;role:string } | null | undefined;
 const sha = (value:string)=>createHash('sha256').update(value).digest('hex');
@@ -97,12 +98,38 @@ export function registerStoreOnboarding(app:FastifyInstance,pool:Pool|null,actor
    return reply.code(201).send({documentId:created.rows[0].id,status:'pending_review'});
   }catch(e){await client.query('ROLLBACK');await unlink(join(storageRoot,storageKey)).catch(()=>{});throw e}finally{client.release()}
  });
- app.post('/store/onboarding/submit',async(request,reply)=>{
-  const invite=await validInvite((request.body as {token?:string})?.token);
+ app.post('/store/onboarding/submit',{schema:{body:{type:'object',additionalProperties:false,required:['token'],properties:{
+   token:{type:'string',minLength:64,maxLength:64},
+   password:{type:'string',minLength:12,maxLength:1024},
+   confirmPassword:{type:'string',minLength:12,maxLength:1024}
+ }}}},async(request,reply)=>{
+  const body=request.body as {token:string;password?:string;confirmPassword?:string};
+  const invite=await validInvite(body?.token);
   if(!invite?.application_id||!pool)return reply.code(404).send({error:'Application not found'});
-  const changed=await pool.query("UPDATE store_onboarding_applications SET status='submitted',submitted_at=now(),review_reason=NULL,updated_at=now() WHERE id=$1 AND status IN ('draft','changes_requested') RETURNING id",[invite.application_id]);
-  if(!changed.rowCount)return reply.code(409).send({error:'Application already submitted or locked'});
-  return {status:'submitted',message:'Application received for administrator review. Licensing may require additional evidence.'};
+  const client=await pool.connect();
+  try{
+   await client.query('BEGIN');
+   const found=await client.query("SELECT id,status,pending_store_user_id FROM store_onboarding_applications WHERE id=$1 FOR UPDATE",[invite.application_id]);
+   const application=found.rows[0] as {id:string;status:string;pending_store_user_id:string|null}|undefined;
+   if(!application||!['draft','changes_requested'].includes(application.status)){await client.query('ROLLBACK');return reply.code(409).send({error:'Application already submitted or locked'})}
+   if(!application.pending_store_user_id){
+    if(!body.password||body.password!==body.confirmPassword){await client.query('ROLLBACK');return reply.code(400).send({error:'Create and confirm a matching password (12 characters minimum) to submit registration'})}
+    // The inactive account reserves the approved contact email, but cannot authenticate until approval.
+    const hash=await hashPassword(body.password);
+    const existing=await client.query('SELECT id FROM users WHERE email=$1 FOR UPDATE',[invite.store_email]);
+    if(existing.rowCount){await client.query('ROLLBACK');return reply.code(409).send({error:'Store contact email already has a platform account. Contact Highline support rather than creating a duplicate.'})}
+    const created=await client.query("INSERT INTO users(email,display_name,password_hash,role,active) SELECT $1,contact_name,$2,'store',false FROM store_onboarding_applications WHERE id=$3 RETURNING id",[invite.store_email,hash,invite.application_id]);
+    await client.query('UPDATE store_onboarding_applications SET pending_store_user_id=$2 WHERE id=$1',[invite.application_id,created.rows[0].id]);
+    await client.query("INSERT INTO auth_audit_events(actor_id,action,subject_email) VALUES($1,'store_registration_credentials_created',$2)",[created.rows[0].id,invite.store_email]);
+   }
+   await client.query("UPDATE store_onboarding_applications SET status='submitted',submitted_at=now(),review_reason=NULL,updated_at=now() WHERE id=$1",[invite.application_id]);
+   await client.query('COMMIT');
+   return {status:'submitted',message:'Application received for review. Your store login will become active if approved.'};
+  }catch(e){
+   await client.query('ROLLBACK');
+   if((e as {code?:string}).code==='23505')return reply.code(409).send({error:'Store contact email already registered'});
+   throw e;
+  }finally{client.release()}
  });
  app.get('/admin/store-onboarding',async(request,reply)=>{
   const user=await access(request);if(!user||user.role!=='admin'||!pool)return reply.code(403).send({error:'Forbidden'});
@@ -184,6 +211,14 @@ export function registerStoreOnboarding(app:FastifyInstance,pool:Pool|null,actor
     }
     const store=await client.query(`INSERT INTO stores(name,address_line1,address_line2,city,state_region,postal_code,contact_name,contact_email,contact_phone,territory_id,primary_representative_id,active) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true) RETURNING id`,[a.doing_business_as||a.legal_business_name,a.address_line1,a.address_line2,a.city,a.state_region,a.postal_code,a.contact_name,a.store_email,a.contact_phone,territoryId,a.representative_id]);
     storeId=store.rows[0].id;
+    if(a.pending_store_user_id){
+      // Activate the previously created credentials only after approval.
+      // Never link an unrelated existing login by matching email.
+      const activated=await client.query("UPDATE users SET active=true,updated_at=now() WHERE id=$1 AND role='store' AND active=false AND email=$2 RETURNING id",[a.pending_store_user_id,a.store_email]);
+      if(!activated.rowCount){await client.query('ROLLBACK');return reply.code(409).send({error:'Pending store login is unavailable; contact administrator'});}
+      await client.query('INSERT INTO store_memberships(user_id,store_id) VALUES($1,$2)',[a.pending_store_user_id,storeId]);
+      await client.query("INSERT INTO auth_audit_events(actor_id,action,subject_email) VALUES($1,'store_registration_approved',$2)",[a.pending_store_user_id,a.store_email]);
+    }
     await client.query('INSERT INTO store_assignment_events(store_id,new_territory_id,new_representative_id,changed_by) VALUES($1,$2,$3,$4)',[storeId,territoryId,a.representative_id,user.id]);
    }
    await client.query('UPDATE store_onboarding_applications SET status=$2,reviewed_by=$3,reviewed_at=now(),review_reason=$4,approved_store_id=$5,updated_at=now() WHERE id=$1',[id,status,user.id,reason?.trim()||null,storeId]);
