@@ -26,6 +26,46 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text NOT NULL UNIQUE, display_name text NOT NULL,
         role text NOT NULL, password_hash text NOT NULL, active boolean NOT NULL DEFAULT true
       );
+      // Mirror migration 010: onboarding approval is required before assignments.
+      CREATE TABLE "${schema}".representative_onboarding (
+        representative_id uuid PRIMARY KEY REFERENCES "${schema}".users(id) ON DELETE CASCADE,
+        legal_first_name text, legal_last_name text, mobile_phone text, alternate_phone text,
+        address_line1 text, address_line2 text, city text, state_region text, postal_code text,
+        country_code char(2) NOT NULL DEFAULT 'US',
+        preferred_contact_method text CHECK (preferred_contact_method IN ('email','mobile','phone')),
+        tax_document_status text NOT NULL DEFAULT 'not_submitted'
+          CHECK (tax_document_status IN ('not_submitted','pending_review','verified','rejected')),
+        identity_document_status text NOT NULL DEFAULT 'not_submitted'
+          CHECK (identity_document_status IN ('not_submitted','pending_review','verified','rejected')),
+        contractor_agreement_status text NOT NULL DEFAULT 'not_submitted'
+          CHECK (contractor_agreement_status IN ('not_submitted','pending_review','verified','rejected')),
+        approval_status text NOT NULL DEFAULT 'pending'
+          CHECK (approval_status IN ('pending','approved','rejected','suspended')),
+        reviewed_by uuid REFERENCES "${schema}".users(id) ON DELETE SET NULL,
+        reviewed_at timestamptz, review_notes text,
+        created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT approval_requires_verified_documents CHECK (
+          approval_status <> 'approved' OR
+          (tax_document_status='verified' AND identity_document_status='verified'
+           AND contractor_agreement_status='verified'
+           AND legal_first_name IS NOT NULL AND legal_last_name IS NOT NULL
+           AND mobile_phone IS NOT NULL AND address_line1 IS NOT NULL
+           AND city IS NOT NULL AND state_region IS NOT NULL AND postal_code IS NOT NULL
+           AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
+        )
+      );
+      CREATE FUNCTION "${schema}".initialize_representative_onboarding()
+      RETURNS trigger LANGUAGE plpgsql AS $onboarding$
+      BEGIN
+        IF NEW.role='representative' THEN
+          INSERT INTO "${schema}".representative_onboarding(representative_id) VALUES (NEW.id);
+        END IF;
+        RETURN NEW;
+      END;
+      $onboarding$;
+      CREATE TRIGGER initialize_representative_onboarding_after_insert
+      AFTER INSERT ON "${schema}".users FOR EACH ROW
+      EXECUTE FUNCTION "${schema}".initialize_representative_onboarding();
       CREATE TABLE "${schema}".representative_profiles (
         user_id uuid PRIMARY KEY REFERENCES "${schema}".users(id) ON DELETE CASCADE,
         phone text, company_name text, notes text,
@@ -310,10 +350,32 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
     const assignUrl = '/admin/territories/' + territoryId + '/representatives/' + repId;
     assert.equal((await app.inject({ method: 'PUT', url: assignUrl, headers: repHeaders })).statusCode, 403);
     assert.equal((await app.inject({ method: 'PUT', url: '/admin/territories/' + territoryId + '/representatives/' + adminId, headers: adminHeaders })).statusCode, 404);
+    const invitedRepId = (await pool.query('SELECT id FROM users WHERE email=$1', ['new@test.invalid'])).rows[0].id as string;
+    const invitedAssignUrl = '/admin/territories/' + territoryId + '/representatives/' + invitedRepId;
+    // Both newly created representatives start pending; neither may be assigned yet.
+    assert.equal((await pool.query('SELECT approval_status FROM representative_onboarding WHERE representative_id=$1', [repId])).rows[0].approval_status, 'pending');
+    assert.equal((await pool.query('SELECT approval_status FROM representative_onboarding WHERE representative_id=$1', [invitedRepId])).rows[0].approval_status, 'pending');
+    assert.equal((await app.inject({ method: 'PUT', url: assignUrl, headers: adminHeaders })).statusCode, 404);
+    assert.equal((await app.inject({ method: 'PUT', url: invitedAssignUrl, headers: adminHeaders })).statusCode, 404);
+    // An approval must meet migration 010's document and reviewer requirements.
+    await assert.rejects(pool.query("UPDATE representative_onboarding SET approval_status='approved' WHERE representative_id=$1", [repId]));
+    const approveTestRepresentative = async (representativeId: string) => {
+      await pool.query(`
+        UPDATE representative_onboarding
+        SET legal_first_name='Test', legal_last_name='Representative',
+            mobile_phone='555-0100', address_line1='100 Test Lane',
+            city='Chino', state_region='CA', postal_code='91710',
+            tax_document_status='verified', identity_document_status='verified',
+            contractor_agreement_status='verified', approval_status='approved',
+            reviewed_by=$2, reviewed_at=now()
+        WHERE representative_id=$1
+      `, [representativeId, adminId]);
+    };
+    await approveTestRepresentative(repId);
+    await approveTestRepresentative(invitedRepId);
     assert.equal((await app.inject({ method: 'PUT', url: assignUrl, headers: adminHeaders })).statusCode, 201);
     assert.equal((await app.inject({ method: 'PUT', url: assignUrl, headers: adminHeaders })).statusCode, 200);
-    const invitedRepId = (await pool.query('SELECT id FROM users WHERE email=$1', ['new@test.invalid'])).rows[0].id as string;
-    assert.equal((await app.inject({ method: 'PUT', url: '/admin/territories/' + territoryId + '/representatives/' + invitedRepId, headers: adminHeaders })).statusCode, 201);
+    assert.equal((await app.inject({ method: 'PUT', url: invitedAssignUrl, headers: adminHeaders })).statusCode, 201);
     const territoryList = await app.inject({ method: 'GET', url: '/admin/territories', headers: adminHeaders });
     assert.equal(territoryList.statusCode, 200);
     assert.equal((territoryList.json() as { territories: Array<{ representatives: unknown[] }> }).territories[0].representatives.length, 2);
