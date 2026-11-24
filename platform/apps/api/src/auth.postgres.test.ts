@@ -26,7 +26,7 @@ test('PostgreSQL-backed authentication lifecycle (dedicated test database only)'
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email text NOT NULL UNIQUE, display_name text NOT NULL,
         role text NOT NULL, password_hash text NOT NULL, active boolean NOT NULL DEFAULT true
       );
-      // Mirror migration 010: onboarding approval is required before assignments.
+      -- Mirror migration 010: onboarding approval is required before assignments.
       CREATE TABLE "${schema}".representative_onboarding (
         representative_id uuid PRIMARY KEY REFERENCES "${schema}".users(id) ON DELETE CASCADE,
         legal_first_name text, legal_last_name text, mobile_phone text, alternate_phone text,
